@@ -1,0 +1,32 @@
+# Token to run the bot with
+token: "PUT_BOT_TOKEN_HERE"
+
+# Database to use for BotCommands dependency (THIS IS NOT FOR THE BOTS DATA)
+# Supports: MariaDB, SQLite, PostgreSQL, H2
+database: "PUT_CONNECTION_STRING_HERE"
+
+# The Mongo database connection string to store data for the bot
+mongo: "PUT_CONNECTION_STRING_HERE"
+
+# Owner IDs of the bot
+owners:
+  primary: 365630764244664320 # Oiiink
+  other:
+    - 381890968971902976 # Rame
+
+# Settings regarding the main guild for the bot
+guild:
+  # The ID of the guild
+  id: 970411885293895801
+
+  # Role IDs
+  roles:
+    mod: 1137159680221782097
+    partner: 970412696841355316
+    community-events: 1134909670675447818
+
+  # Channel IDs
+  channels:
+    servers: 1125178850620473426
+    partner-events: 980956946075115570
+    community-events: 980635360184905810
