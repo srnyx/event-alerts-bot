@@ -16,6 +16,7 @@ import com.freya02.botcommands.api.modals.annotations.ModalInput;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
 
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
@@ -38,8 +39,6 @@ import xyz.srnyx.eventalerts.mongo.objects.Server;
 
 import xyz.srnyx.lazylibrary.LazyEmoji;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -99,7 +98,8 @@ public class ServerCmd extends ApplicationCommand {
                     @AppOption(description = "The name of your event server") @NotNull String name,
                     @AppOption(description = "The invite link to your server") @NotNull String invite,
                     @AppOption(description = "Any other representatives of your server (mention them, separate with spaces)") @Nullable String representatives,
-                    @AppOption(description = "The hex color that your server embed should be") @Nullable String color) {
+                    @AppOption(description = "The hex color that your server embed should be") @Nullable String color,
+                    @AppOption(description = "The thumbnail/icon image URL of your server") @Nullable String thumbnail) {
         if (!eventAlerts.config.guild.roles.checkIsPartner(event)) return;
         final User user = event.getUser();
         final Bson filter = Filters.eq("user", user.getIdLong());
@@ -120,6 +120,49 @@ public class ServerCmd extends ApplicationCommand {
         if (inviteLength > 1007) {
             event.reply(LazyEmoji.NO + " Your server invite is too long (`" + inviteLength + "/1007`)!").setEphemeral(true).queue();
             return;
+        }
+
+        // Check thumbnail
+        if (thumbnail != null) {
+            final long thumbnailLength = thumbnail.length();
+            if (thumbnailLength > 2000) {
+                event.reply(LazyEmoji.NO + " Your server thumbnail is too long (`" + thumbnailLength + "/2000`)!").setEphemeral(true).queue();
+                return;
+            }
+            if (!EmbedBuilder.URL_PATTERN.matcher(thumbnail).matches()) {
+                event.reply(LazyEmoji.NO + " Your thumbnail is not a valid URL; `" + thumbnail + "`").setEphemeral(true).queue();
+                return;
+            }
+        }
+
+        // Extract invite code
+        if (invite.startsWith("https://discord.gg/")) {
+            invite = invite.substring(19);
+        } else if (invite.startsWith("discord.gg/")) {
+            invite = invite.substring(11);
+        }
+
+        // Check if invite URL is valid
+        final String inviteUrl = "https://discord.gg/" + invite;
+        if (!EmbedBuilder.URL_PATTERN.matcher(inviteUrl).matches()) {
+            event.reply(LazyEmoji.NO + " Your invite is not a valid Discord invite; `" + inviteUrl + "`").setEphemeral(true).queue();
+            return;
+        }
+
+        // Get color
+        Integer colorInt = null;
+        if (color != null) {
+            if (color.startsWith("#")) color = color.substring(1);
+            if (color.length() != 6) {
+                event.reply(LazyEmoji.NO + " Your color must be a valid hex color (6 characters)!").setEphemeral(true).queue();
+                return;
+            }
+            try {
+                colorInt = Integer.parseInt(color, 16);
+            } catch (final NumberFormatException e) {
+                event.reply(LazyEmoji.NO + " Your color must be a valid hex color!").setEphemeral(true).queue();
+                return;
+            }
         }
 
         // Get representatives
@@ -143,44 +186,13 @@ public class ServerCmd extends ApplicationCommand {
             }
         }
 
-        // Get color
-        Integer colorInt = null;
-        if (color != null) {
-            if (color.startsWith("#")) color = color.substring(1);
-            if (color.length() != 6) {
-                event.reply(LazyEmoji.NO + " Your color must be a valid hex color (6 characters)!").setEphemeral(true).queue();
-                return;
-            }
-            try {
-                colorInt = Integer.parseInt(color, 16);
-            } catch (final NumberFormatException e) {
-                event.reply(LazyEmoji.NO + " Your color must be a valid hex color!").setEphemeral(true).queue();
-                return;
-            }
-        }
-
-        // Extract invite code
-        if (invite.startsWith("https://discord.gg/")) {
-            invite = invite.substring(19);
-        } else if (invite.startsWith("discord.gg/")) {
-            invite = invite.substring(11);
-        }
-
-        // Check if invite code is valid
-        final String inviteUrl = "https://discord.gg/" + invite;
-        try {
-            new URL(inviteUrl);
-        } catch (final MalformedURLException e) {
-            event.reply(LazyEmoji.NO + " Your invite is not a valid Discord invite!").setEphemeral(true).queue();
-            return;
-        }
-
         // Set server
         Bson update = Updates.combine(
                 Updates.set("name", name),
                 Updates.set("invite", invite));
         if (representativeList != null) update = Updates.combine(update, Updates.set("representatives", representativeList));
         if (colorInt != null) update = Updates.combine(update, Updates.set("color", colorInt));
+        if (thumbnail != null) update = Updates.combine(update, Updates.set("thumbnail", thumbnail));
         final Server server = eventAlerts.mongo.serversCollection.findOneAndUpsert(filter, update);
         if (server == null) {
             event.reply(LazyEmoji.NO + " An error occurred while setting your server!").setEphemeral(true).queue();

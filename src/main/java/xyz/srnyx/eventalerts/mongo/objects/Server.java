@@ -30,11 +30,12 @@ public class Server {
     @BsonProperty public Long user;
     @BsonProperty(value = "message") @Nullable public Long message;
     @BsonProperty public String name;
+    @BsonProperty @Nullable public String description;
     @BsonProperty public String invite;
+    @BsonProperty @Nullable public Set<String> tags;
     @BsonProperty @Nullable public List<Long> representatives;
     @BsonProperty @Nullable public Integer color;
-    @BsonProperty @Nullable public Set<String> tags;
-    @BsonProperty @Nullable public String description;
+    @BsonProperty @Nullable public String thumbnail;
 
     @Nullable
     public CacheRestAction<User> getUser(@NotNull EventAlerts eventAlerts) {
@@ -57,7 +58,6 @@ public class Server {
                 .setTitle(name, inviteUrl)
                 .addField("Invite", inviteUrl, true);
         if (description != null) embed.setDescription(description);
-        if (color != null) embed.setColor(color);
         if (tags != null) {
             tags.stream()
                     .map(string -> {
@@ -80,6 +80,8 @@ public class Server {
                 .map(representative -> "<@" + representative + ">")
                 .reduce((a, b) -> a + ", " + b)
                 .ifPresent(representativeString -> embed.addField("Representatives", representativeString, true));
+        if (color != null) embed.setColor(color);
+        if (thumbnail != null) embed.setThumbnail(thumbnail);
         return embed;
     }
 }
