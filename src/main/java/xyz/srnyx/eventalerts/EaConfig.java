@@ -15,14 +15,14 @@ import org.spongepowered.configurate.ConfigurationNode;
 public class EaConfig {
     @NotNull private final EventAlerts eventAlerts;
 
-    @Nullable public final String mongo;
+    @NotNull public final MongoNode mongo;
     @NotNull public final GuildNode guild;
 
     public EaConfig(@NotNull EventAlerts eventAlerts) {
         this.eventAlerts = eventAlerts;
 
         final ConfigurationNode yaml = eventAlerts.settings.fileSettings.file.yaml;
-        this.mongo = yaml.node("mongo").getString();
+        this.mongo = new MongoNode(yaml.node("mongo"));
         this.guild = new GuildNode(yaml.node("guild"));
     }
 
@@ -30,6 +30,16 @@ public class EaConfig {
         final boolean isOwner = eventAlerts.isOwner(event.getUser().getIdLong());
         if (!isOwner) event.replyEmbeds(eventAlerts.embeds.noPermission()).setEphemeral(true).queue();
         return isOwner;
+    }
+
+    public class MongoNode {
+        @Nullable public final String connection;
+        @Nullable public final String database;
+
+        public MongoNode(@NotNull ConfigurationNode node) {
+            this.connection = node.node("connection").getString();
+            this.database = node.node("database").getString();
+        }
     }
 
     public class GuildNode {

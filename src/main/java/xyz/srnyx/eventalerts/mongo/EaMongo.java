@@ -31,9 +31,9 @@ public class EaMongo {
     @NotNull public final EaCollection<Strike> strikesCollection;
 
     public EaMongo(@NotNull EventAlerts eventAlerts) {
-        if (eventAlerts.config.mongo == null) throw new IllegalStateException("Mongo configuration is null!");
-        client = MongoClients.create(eventAlerts.config.mongo);
-        final MongoDatabase database = client.getDatabase("eventalerts").withCodecRegistry(CodecRegistries.fromRegistries(MongoClientSettings.getDefaultCodecRegistry(), CodecRegistries.fromProviders(PojoCodecProvider.builder().automatic(true).build())));
+        if (eventAlerts.config.mongo.connection == null || eventAlerts.config.mongo.database == null) throw new IllegalStateException("Mongo configuration is invalid!");
+        client = MongoClients.create(eventAlerts.config.mongo.connection);
+        final MongoDatabase database = client.getDatabase(eventAlerts.config.mongo.database).withCodecRegistry(CodecRegistries.fromRegistries(MongoClientSettings.getDefaultCodecRegistry(), CodecRegistries.fromProviders(PojoCodecProvider.builder().automatic(true).build())));
         partnersCollection = new EaCollection<>(database, "partners", Partner.class);
         serversCollection = new EaCollection<>(database, "servers", Server.class);
         strikesCollection = new EaCollection<>(database, "strikes", Strike.class);
