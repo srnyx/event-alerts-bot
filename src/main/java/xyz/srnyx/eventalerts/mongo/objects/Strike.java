@@ -1,11 +1,12 @@
 package xyz.srnyx.eventalerts.mongo.objects;
 
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.User;
-import net.dv8tion.jda.api.requests.restaction.CacheRestAction;
+import com.mongodb.client.model.Filters;
 
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.requests.RestAction;
+
+import org.bson.BsonValue;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 
@@ -15,64 +16,66 @@ import org.jetbrains.annotations.Nullable;
 import xyz.srnyx.eventalerts.EventAlerts;
 import xyz.srnyx.eventalerts.mongo.EaMongo;
 
-import java.util.HashSet;
+import xyz.srnyx.lazylibrary.LazyEmbed;
 
 
 public class Strike {
-    @BsonProperty public ObjectId id;
+    @BsonProperty(value = "_id") public ObjectId id;
     @BsonProperty(value = "strike_id") public Integer strikeId;
-    @BsonProperty public Long user;
-    @BsonProperty public Long striker;
-    @BsonProperty public String reason;
-    @BsonProperty public Long timestamp;
-    @BsonProperty @Nullable public Long expire;
+    public Long user;
+    public Long striker;
+    public String reason;
+    public Long timestamp;
+    @Nullable public Long expire;
+    @Nullable public Long message;
 
     public Strike() {}
 
-    public Strike(@NotNull EaMongo mongo, @NotNull Long user, @NotNull String reason, @NotNull Long striker, @Nullable Long expire) {
-        this.strikeId = mongo.strikesCollection.collection.find().into(new HashSet<>()).size() + 1;
+    public Strike(@NotNull EventAlerts eventAlerts, @NotNull Long user, @NotNull String reason, @NotNull Long striker, @Nullable Long expire) {
+        this.strikeId = eventAlerts.mongo.strikeCollection.findMany(Filters.exists("strike_id")).stream()
+                .mapToInt(strike -> strike.strikeId)
+                .max()
+                .orElse(0) + 1;
         this.user = user;
         this.reason = reason;
         this.striker = striker;
         this.timestamp = System.currentTimeMillis();
         this.expire = expire;
-        mongo.strikesCollection.collection.insertOne(this);
+        final BsonValue newId = eventAlerts.mongo.strikeCollection.collection.insertOne(this).getInsertedId();
+        if (newId != null) this.id = newId.asObjectId().getValue();
     }
 
     @Nullable
-    public CacheRestAction<User> getUser(@NotNull EventAlerts eventAlerts) {
-        return EaMongo.getUser(eventAlerts, user);
+    public RestAction<Message> getMessage(@NotNull EventAlerts eventAlerts) {
+        return EaMongo.getMessage(eventAlerts, eventAlerts.config.guild.channels.strikes, message);
     }
 
-    @Nullable
-    public CacheRestAction<Member> getMember(@NotNull EventAlerts eventAlerts) {
-        if (user == null) return null;
-        final Guild guild = eventAlerts.config.guild.getGuild();
-        return guild == null ? null : guild.retrieveMemberById(user);
+    public boolean hasExpired() {
+        return expire != null && System.currentTimeMillis() >= expire;
     }
 
-    @Nullable
-    public CacheRestAction<User> getStriker(@NotNull EventAlerts eventAlerts) {
-        return EaMongo.getUser(eventAlerts, striker);
-    }
-
-    @Nullable
-    public CacheRestAction<Member> getStrikerMember(@NotNull EventAlerts eventAlerts) {
-        if (striker == null) return null;
-        final Guild guild = eventAlerts.config.guild.getGuild();
-        return guild == null ? null : guild.retrieveMemberById(striker);
-    }
-
-    public boolean expired() {
-        return expire != null && System.currentTimeMillis() > expire;
+    public void delete(@NotNull EventAlerts eventAlerts) {
+        final RestAction<Message> messageAction = getMessage(eventAlerts);
+        if (messageAction != null) messageAction.flatMap(Message::delete).queue();
+        eventAlerts.mongo.strikeCollection.collection.deleteOne(Filters.eq("_id", id));
     }
 
     @NotNull
     public MessageEmbed.Field toField() {
-        final StringBuilder builder = new StringBuilder();
-        if (reason != null) builder.append(reason).append("\n");
+        final StringBuilder builder = new StringBuilder(reason + "\n");
         if (striker != null) builder.append("By <@").append(striker).append(">\n");
         if (expire != null) builder.append("Expires <t:").append(expire / 1000).append(":R>");
-        return new MessageEmbed.Field(strikeId.toString(), builder.toString(), false);
+        return new MessageEmbed.Field(strikeId.toString(), builder.toString(), true);
+    }
+
+    @NotNull
+    public LazyEmbed toEmbed() {
+        final LazyEmbed embed = new LazyEmbed();
+        embed.addField("ID", strikeId.toString(), true);
+        embed.addField("User", "<@" + user + ">", true);
+        if (striker != null) embed.addField("Striker", "<@" + striker + ">", true);
+        if (expire != null) embed.addField("Expires", "<t:" + (expire / 1000) + ":R>", true);
+        embed.addField("Reason", reason, true);
+        return embed;
     }
 }

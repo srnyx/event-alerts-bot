@@ -23,7 +23,7 @@ public class EchoContext extends ApplicationCommand {
             scope = CommandScope.GLOBAL,
             name = "Echo")
     public void echoContext(@NotNull GlobalMessageEvent event) {
-        if (!eventAlerts.config.checkIsOwner(event)) return;
+        if (eventAlerts.config.checkIfNotOwner(event)) return;
         // Delete reply
         event.deferReply(true)
                 .flatMap(InteractionHook::deleteOriginal)

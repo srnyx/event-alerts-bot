@@ -23,17 +23,15 @@ public enum ServerTag {
     VIDEOS(Emoji.fromUnicode("\uD83D\uDCF9"));
 
     @NotNull public static final List<SelectOption> OPTIONS = Arrays.stream(values())
-            .map(tag -> SelectOption.of(tag.getDisplayName(), tag.name()).withEmoji(tag.emoji))
+            .map(tag -> {
+                final String name = tag.name();
+                return SelectOption.of(name, name).withEmoji(tag.emoji);
+            })
             .toList();
 
     @NotNull public final UnicodeEmoji emoji;
 
     ServerTag(@NotNull UnicodeEmoji emoji) {
         this.emoji = emoji;
-    }
-
-    @NotNull
-    public String getDisplayName() {
-        return name().toLowerCase();
     }
 }

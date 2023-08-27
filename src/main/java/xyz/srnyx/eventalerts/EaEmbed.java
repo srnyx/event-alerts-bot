@@ -18,19 +18,19 @@ public class EaEmbed {
 
     @NotNull
     public MessageEmbed noPermission() {
-        return new LazyEmbed(eventAlerts)
+        return new LazyEmbed()
                 .setColor(Color.RED)
                 .setTitle("No permission!")
                 .setDescription("You don't have permission to do that!")
-                .build();
+                .build(eventAlerts);
     }
 
     @NotNull
-    public MessageEmbed invalidArgument(@NotNull Object argument) {
-        return new LazyEmbed(eventAlerts)
+    public MessageEmbed invalidArgument(@NotNull String argument, @NotNull Object value) {
+        return new LazyEmbed()
                 .setColor(Color.RED)
                 .setTitle("Invalid argument!")
-                .setDescription("The argument `" + argument + "` is invalid!")
-                .build();
+                .addField(argument, value.toString(), true)
+                .build(eventAlerts);
     }
 }

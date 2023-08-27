@@ -1,11 +1,7 @@
 package xyz.srnyx.eventalerts.mongo.objects;
 
-import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.User;
-import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.requests.RestAction;
-import net.dv8tion.jda.api.requests.restaction.CacheRestAction;
 
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
@@ -26,52 +22,41 @@ import java.util.Set;
 
 
 public class Server {
-    @BsonProperty public ObjectId id;
-    @BsonProperty public Long user;
-    @BsonProperty(value = "message") @Nullable public Long message;
-    @BsonProperty public String name;
-    @BsonProperty @Nullable public String description;
-    @BsonProperty public String invite;
-    @BsonProperty @Nullable public Set<String> tags;
-    @BsonProperty @Nullable public List<Long> representatives;
-    @BsonProperty @Nullable public Integer color;
-    @BsonProperty @Nullable public String thumbnail;
-
-    @Nullable
-    public CacheRestAction<User> getUser(@NotNull EventAlerts eventAlerts) {
-        return EaMongo.getUser(eventAlerts, user);
-    }
+    @BsonProperty(value = "_id") public ObjectId id;
+    public Long user;
+    @Nullable public Long message;
+    public String name;
+    @Nullable public String description;
+    public String invite;
+    @Nullable public Set<String> tags;
+    @Nullable public List<Long> representatives;
+    @Nullable public Integer color;
+    @Nullable public String thumbnail;
 
     @Nullable
     public RestAction<Message> getMessage(@NotNull EventAlerts eventAlerts) {
-        if (message == null) return null;
-        final Guild guild = eventAlerts.config.guild.getGuild();
-        if (guild == null) return null;
-        final GuildMessageChannel serverChannel = eventAlerts.config.guild.channels.getServers();
-        return serverChannel == null ? null : serverChannel.retrieveMessageById(message);
+        return EaMongo.getMessage(eventAlerts, eventAlerts.config.guild.channels.servers, message);
     }
 
     @NotNull
-    public LazyEmbed getEmbed(@NotNull EventAlerts eventAlerts) {
+    public LazyEmbed getEmbed() {
         final String inviteUrl = "https://discord.gg/" + invite;
-        final LazyEmbed embed = new LazyEmbed(eventAlerts)
+        final LazyEmbed embed = new LazyEmbed()
                 .setTitle(name, inviteUrl)
                 .addField("Invite", inviteUrl, true);
         if (description != null) embed.setDescription(description);
-        if (tags != null) {
-            tags.stream()
-                    .map(string -> {
-                        if (string == null) return null;
-                        try {
-                            return ServerTag.valueOf(string).getDisplayName();
-                        } catch (final IllegalArgumentException e) {
-                            return null;
-                        }
-                    })
-                    .filter(Objects::nonNull)
-                    .reduce((a, b) -> a + ", " + b)
-                    .ifPresent(tagString -> embed.addField("Tags", tagString, true));
-        }
+        if (tags != null) tags.stream()
+                .filter(Objects::nonNull)
+                .map(string -> {
+                    try {
+                        return "`" + ServerTag.valueOf(string).name() + "`";
+                    } catch (final IllegalArgumentException e) {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .reduce((a, b) -> a + " " + b)
+                .ifPresent(tagString -> embed.addField("Tags", tagString, true));
         final List<Long> allRepresentatives = new ArrayList<>();
         allRepresentatives.add(user);
         if (representatives != null) allRepresentatives.addAll(representatives);

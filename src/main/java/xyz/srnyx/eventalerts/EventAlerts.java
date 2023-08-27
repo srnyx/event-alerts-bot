@@ -1,33 +1,45 @@
 package xyz.srnyx.eventalerts;
 
+import com.mongodb.client.model.Filters;
+
 import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 
 import org.jetbrains.annotations.NotNull;
 
 import xyz.srnyx.eventalerts.mongo.EaMongo;
+import xyz.srnyx.eventalerts.mongo.objects.Strike;
 
 import xyz.srnyx.lazylibrary.LazyEmbed;
 import xyz.srnyx.lazylibrary.LazyLibrary;
 import xyz.srnyx.lazylibrary.settings.LazySettings;
 
-import java.util.Random;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 
 public class EventAlerts extends LazyLibrary {
-    @NotNull public static final Random RANDOM = new Random();
-
     @NotNull public final EaConfig config = new EaConfig(this);
-    @NotNull public final EaMongo mongo = new EaMongo(this);
+    @NotNull public final EaMongo mongo = new EaMongo(config.mongo);
     @NotNull public final EaEmbed embeds = new EaEmbed(this);
+    @NotNull public final Map<Long, Long> userEventCooldowns = new ConcurrentHashMap<>();
 
     public EventAlerts() {
-        // Register listeners
-        jda.addEventListener();
-
         // Presence (status)
         jda.getPresence().setActivity(Activity.playing("oink oink"));
+
+        // Check ended events & expired strikes
+        mongo.getEndedEvents().forEach(event -> event.delete(this));
+        mongo.strikeCollection.findMany(Filters.exists("expire")).stream()
+                .filter(Strike::hasExpired)
+                .forEach(strike -> strike.delete(this));
+
+        // Start event checking
+        Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> mongo.getEndedEvents().forEach(event -> event.notifySubscribers(this)), 1, 1, TimeUnit.MINUTES);
 
         // Status log message
         LOGGER.info("Event Alerts has finished starting!");
@@ -40,6 +52,7 @@ public class EventAlerts extends LazyLibrary {
                         "xyz.srnyx.eventalerts.apps",
                         "xyz.srnyx.eventalerts.commands",
                         "xyz.srnyx.eventalerts.components")
+                .gatewayIntents(GatewayIntent.MESSAGE_CONTENT)
                 .disabledCacheFlags(
                         CacheFlag.ACTIVITY,
                         CacheFlag.EMOJI,

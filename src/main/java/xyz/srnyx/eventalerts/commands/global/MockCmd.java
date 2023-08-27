@@ -12,9 +12,13 @@ import org.jetbrains.annotations.NotNull;
 
 import xyz.srnyx.eventalerts.EventAlerts;
 
+import java.util.Random;
+
 
 @CommandMarker
 public class MockCmd extends ApplicationCommand {
+    @NotNull private static final Random RANDOM = new Random();
+
     @Dependency private EventAlerts eventAlerts;
 
     @JDASlashCommand(
@@ -26,13 +30,11 @@ public class MockCmd extends ApplicationCommand {
         event.reply(mockify(text)).setEphemeral(true).queue();
     }
 
-    // STATICS
-
     @NotNull
     public static String mockify(@NotNull String text) {
         return text.chars()
                 .mapToObj(c -> (char) c)
-                .map(c -> EventAlerts.RANDOM.nextBoolean() ? Character.toUpperCase(c) : Character.toLowerCase(c))
+                .map(c -> RANDOM.nextBoolean() ? Character.toUpperCase(c) : Character.toLowerCase(c))
                 .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
                 .toString();
     }

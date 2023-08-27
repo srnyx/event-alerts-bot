@@ -58,6 +58,10 @@ public class EaCollection<T> {
         collection.deleteOne(filter);
     }
 
+    public void deleteOne(@NotNull String field, @Nullable Object value) {
+        deleteOne(Filters.eq(field, value));
+    }
+
     @NotNull
     private static FindOneAndUpdateOptions getReturnAfter() {
         return new FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER);

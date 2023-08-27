@@ -30,7 +30,7 @@ public class SayCmd extends ApplicationCommand {
     public void onCommand(@NotNull GlobalSlashEvent event,
                           @AppOption(description = "The message to say") @NotNull String message,
                           @AppOption(description = "The channel to say the message in") @Nullable TextChannel channel) {
-        if (!eventAlerts.config.checkIsOwner(event)) return;
+        if (eventAlerts.config.checkIfNotOwner(event)) return;
         final TextChannel currentChannel = event.getChannel().asTextChannel();
         if (channel == null) channel = currentChannel;
 

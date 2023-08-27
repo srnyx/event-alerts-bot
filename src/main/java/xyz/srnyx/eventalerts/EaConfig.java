@@ -4,12 +4,17 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.GenericCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import org.spongepowered.configurate.ConfigurationNode;
+import xyz.srnyx.lazylibrary.LazyLibrary;
+
+import java.util.List;
 
 
 public class EaConfig {
@@ -26,13 +31,13 @@ public class EaConfig {
         this.guild = new GuildNode(yaml.node("guild"));
     }
 
-    public boolean checkIsOwner(@NotNull GenericCommandInteractionEvent event) {
-        final boolean isOwner = eventAlerts.isOwner(event.getUser().getIdLong());
-        if (!isOwner) event.replyEmbeds(eventAlerts.embeds.noPermission()).setEphemeral(true).queue();
-        return isOwner;
+    public boolean checkIfNotOwner(@NotNull GenericCommandInteractionEvent event) {
+        final boolean isntOwner = !eventAlerts.isOwner(event.getUser().getIdLong());
+        if (isntOwner) event.replyEmbeds(eventAlerts.embeds.noPermission()).setEphemeral(true).queue();
+        return isntOwner;
     }
 
-    public class MongoNode {
+    public static class MongoNode {
         @Nullable public final String connection;
         @Nullable public final String database;
 
@@ -59,76 +64,95 @@ public class EaConfig {
     }
 
         public class RolesNode {
-            public final long partner;
             public final long mod;
+            public final long partner;
             public final long communityEvents;
+            @NotNull public final EventPingsNode eventPings;
 
             public RolesNode(@NotNull ConfigurationNode node) {
-                this.partner = node.node("partner").getLong();
                 this.mod = node.node("mod").getLong();
+                this.partner = node.node("partner").getLong();
                 this.communityEvents = node.node("community-events").getLong();
+                this.eventPings = new EventPingsNode(node.node("event-pings"));
             }
 
-            @Nullable
-            public Role getPartner() {
-                final Guild jdaGuild = getGuild();
-                return jdaGuild == null ? null : jdaGuild.getRoleById(partner);
-            }
-
-            @Nullable
-            public Role getMod() {
-                final Guild jdaGuild = getGuild();
-                return jdaGuild == null ? null : jdaGuild.getRoleById(mod);
-            }
-
-            public boolean isPartner(long user) {
+            public boolean hasRole(long user, long role) {
                 final Guild jdaGuild = getGuild();
                 if (jdaGuild == null) return false;
-                final Role role = getPartner();
+                final Role jdaRole = jdaGuild.getRoleById(role);
+                if (jdaRole == null) return false;
                 final Member member = jdaGuild.retrieveMemberById(user).complete();
-                return role != null && member != null && member.getRoles().contains(role);
+                return member != null && member.getRoles().contains(jdaRole);
             }
 
-            public boolean checkIsPartner(@NotNull GenericCommandInteractionEvent event) {
-                final boolean isPartner = isPartner(event.getUser().getIdLong());
-                if (!isPartner) event.replyEmbeds(eventAlerts.embeds.noPermission()).setEphemeral(true).queue();
-                return isPartner;
+            public boolean checkDontHaveRole(@NotNull GenericCommandInteractionEvent event, long role) {
+                final boolean doesntHaverole = !hasRole(event.getUser().getIdLong(), role);
+                if (doesntHaverole) event.replyEmbeds(eventAlerts.embeds.noPermission()).setEphemeral(true).queue();
+                return doesntHaverole;
             }
 
-            public boolean isMod(long user) {
-                final Guild jdaGuild = getGuild();
-                if (jdaGuild == null) return false;
-                final Role role = getMod();
-                final Member member = jdaGuild.retrieveMemberById(user).complete();
-                return role != null && member != null && member.getRoles().contains(role);
-            }
+            public static class EventPingsNode {
+                public final long community;
+                public final long eventAlerts;
+                public final long money;
+                public final long fun;
+                public final long housing;
+                public final long civilization;
+                @NotNull public final List<SelectOption> options;
 
-            public boolean checkIsMod(@NotNull GenericCommandInteractionEvent event) {
-                final boolean isMod = isMod(event.getUser().getIdLong());
-                if (!isMod) event.replyEmbeds(eventAlerts.embeds.noPermission()).setEphemeral(true).queue();
-                return isMod;
+                public EventPingsNode(@NotNull ConfigurationNode node) {
+                    community = node.node("community").getLong();
+                    eventAlerts = node.node("event-alerts").getLong();
+                    money = node.node("money").getLong();
+                    fun = node.node("fun").getLong();
+                    housing = node.node("housing").getLong();
+                    civilization = node.node("civilization").getLong();
+                    options = List.of(
+                            SelectOption.of("Money", String.valueOf(money)).withEmoji(Emoji.fromUnicode("\uD83D\uDCB5")),
+                            SelectOption.of("Fun", String.valueOf(fun)).withEmoji(Emoji.fromUnicode("\uD83C\uDF89")),
+                            SelectOption.of("Housing", String.valueOf(housing)).withEmoji(Emoji.fromUnicode("\uD83C\uDFE0")),
+                            SelectOption.of("Civilization", String.valueOf(civilization)).withEmoji(Emoji.fromUnicode("\uD83C\uDF3E")));
+                }
             }
         }
 
         public class ChannelsNode {
+            public final long strikes;
             public final long servers;
+            public final long partnerEvents;
             public final long communityEvents;
 
             public ChannelsNode(@NotNull ConfigurationNode node) {
+                this.strikes = node.node("strikes").getLong();
                 this.servers = node.node("servers").getLong();
+                this.partnerEvents = node.node("partner-events").getLong();
                 this.communityEvents = node.node("community-events").getLong();
             }
 
             @Nullable
+            public GuildMessageChannel getStrikes() {
+                return getGuildMessageChannel(strikes);
+            }
+
+            @Nullable
             public GuildMessageChannel getServers() {
-                final Guild jdaGuild = getGuild();
-                return jdaGuild == null ? null : jdaGuild.getChannelById(GuildMessageChannel.class, servers);
+                return getGuildMessageChannel(servers);
+            }
+
+            @Nullable
+            public GuildMessageChannel getPartnerEvents() {
+                return getGuildMessageChannel(partnerEvents);
             }
 
             @Nullable
             public GuildMessageChannel getCommunityEvents() {
+                return getGuildMessageChannel(communityEvents);
+            }
+
+            @Nullable
+            private GuildMessageChannel getGuildMessageChannel(long id) {
                 final Guild jdaGuild = getGuild();
-                return jdaGuild == null ? null : jdaGuild.getChannelById(GuildMessageChannel.class, communityEvents);
+                return jdaGuild == null ? null : jdaGuild.getChannelById(GuildMessageChannel.class, id);
             }
         }
     }
