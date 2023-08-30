@@ -29,7 +29,7 @@ guild:
     community-events: 1134909670675447818
     # Role IDs for event pings
     event-pings:
-      community-events: 980950599946362900
+      community: 980950599946362900
       event-alerts: 970434201990070424
       money: 970434305203511359
       fun: 970434303391576164

@@ -71,13 +71,11 @@ public class EventCmd extends ApplicationCommand {
         // Check cooldown
         final Long cooldown = eventAlerts.userEventCooldowns.get(userId);
         if (cooldown != null) {
-            final long cooldownEndsTime = cooldown + 900000L;
-            if (cooldownEndsTime > now) {
-                event.reply(LazyEmoji.NO + " **You're on cooldown!** You can post a new event **<t:" + (cooldownEndsTime / 1000) + ":R>**!").setEphemeral(true).queue();
+            if (cooldown > now) {
+                event.reply(LazyEmoji.NO + " **You're on cooldown!** You can post a new event **<t:" + (cooldown / 1000) + ":R>**!").setEphemeral(true).queue();
                 return;
             }
             eventAlerts.userEventCooldowns.remove(userId);
-            return;
         }
 
         // Set time
@@ -117,10 +115,9 @@ public class EventCmd extends ApplicationCommand {
                                       @ModalData long time,
                                       @ModalData @NotNull String ip,
                                       @ModalData @NotNull String version,
-                                      @ModalData @Nullable String prize,
+                                      @ModalData @NotNull String prize,
                                       @ModalInput(name = "description") @Nullable String description) {
-        final EventData data = new EventData(eventAlerts, roles, title, time, ip, version, event.getUser().getIdLong(), prize, description);
-        event.editMessage(data.getMessage(new MessageEditBuilder(), true)).queue();
+        event.editMessage(new EventData(eventAlerts, roles, title, time, ip, version, event.getUser().getIdLong(), prize.isEmpty() ? null : prize, description).getMessage(new MessageEditBuilder(), true)).queue();
     }
 
     @JDAButtonListener(name = BUTTON_SUBSCRIBE)
@@ -129,7 +126,6 @@ public class EventCmd extends ApplicationCommand {
         if (userId == null) return;
         eventAlerts.mongo.eventCollection.collection.updateOne(Filters.eq("thread", event.getMessageIdLong()), Updates.push("subscribers", userId));
         event.reply(LazyEmoji.YES + " **You are now following this event!** You will be notified ~5 minutes before it starts").setEphemeral(true)
-                // add 1 to the subscriber count in button name
                 .flatMap(msg -> {
                     final Message message = event.getMessage();
                     final Button button = event.getComponent();
@@ -275,7 +271,7 @@ public class EventCmd extends ApplicationCommand {
 
             // Get first ActionRow
             final List<Button> buttons = new ArrayList<>();
-            buttons.add(Components.secondaryButton(buttonEvent -> buttonEvent.replyModal(Modals.create("Event Description", MODAL_EVENT_DESCRIPTION, roles, title, time, ip, version, prize)
+            buttons.add(Components.secondaryButton(buttonEvent -> buttonEvent.replyModal(Modals.create("Event Description", MODAL_EVENT_DESCRIPTION, roles, title, time, ip, version, prize == null ? "" : prize)
                     .addActionRow(Modals.createTextInput("description", "Event description", TextInputStyle.PARAGRAPH)
                             .setPlaceholder("Enter a description for your event")
                             .setValue(description)
@@ -318,7 +314,7 @@ public class EventCmd extends ApplicationCommand {
                                     .queue();
                             return;
                         }
-                        eventAlerts.userEventCooldowns.put(host, System.currentTimeMillis());
+                        eventAlerts.userEventCooldowns.put(host, System.currentTimeMillis() + 900000L);
                         // Get reactions
                         final List<Emoji> reactions = new ArrayList<>();
                         if (isPartner) {

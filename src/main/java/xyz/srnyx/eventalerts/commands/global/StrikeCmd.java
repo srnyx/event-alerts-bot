@@ -16,8 +16,10 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
+import net.dv8tion.jda.api.exceptions.ErrorHandler;
 import net.dv8tion.jda.api.interactions.commands.Command;
 
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -131,7 +133,7 @@ public class StrikeCmd extends ApplicationCommand {
                 .flatMap(privateChannel -> privateChannel.sendMessageEmbeds(strike.toEmbed()
                         .setTitle("Strike #" + strikes)
                         .build(eventAlerts)))
-                .queue(s -> {}, e -> LazyLibrary.LOGGER.warn("Failed to send strike message for " + name, e));
+                .queue(null, new ErrorHandler().ignore(ErrorResponse.CANNOT_SEND_TO_USER));
     }
 
     @JDASlashCommand(
