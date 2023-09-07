@@ -2,7 +2,9 @@ package xyz.srnyx.eventalerts.mongo.objects;
 
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import net.dv8tion.jda.api.exceptions.ErrorHandler;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.requests.RestAction;
 
 import org.bson.codecs.pojo.annotations.BsonProperty;
@@ -78,7 +80,7 @@ public class Event {
         threadAction
                 .flatMap(threadChannel -> threadChannel.sendMessage(beforeTitle + "Event" + afterTitle))
                 .flatMap(msg -> msg.editMessage(beforeTitle + title + afterTitle))
-                .queue();
+                .queue(s -> {}, new ErrorHandler().ignore(ErrorResponse.UNKNOWN_MESSAGE));
     }
 
     public void delete(@NotNull EventAlerts eventAlerts) {
@@ -88,6 +90,6 @@ public class Event {
                 .flatMap(msg -> msg.editMessageComponents(msg.getActionRows().stream()
                         .map(ActionRow::asDisabled)
                         .toList()))
-                .queue();
+                .queue(s -> {}, new ErrorHandler().ignore(ErrorResponse.UNKNOWN_MESSAGE));
     }
 }

@@ -124,7 +124,7 @@ public class EventCmd extends ApplicationCommand {
     public void buttonSubscribe(@NotNull ButtonEvent event) {
         final Long userId = getSubscribeUserId(event, true, "You are already following this event!");
         if (userId == null) return;
-        eventAlerts.mongo.eventCollection.collection.updateOne(Filters.eq("thread", event.getMessageIdLong()), Updates.push("subscribers", userId));
+        eventAlerts.mongo.eventCollection.collection.updateOne(Filters.eq("thread", event.getMessageIdLong()), Updates.addToSet("subscribers", userId));
         event.reply(LazyEmoji.YES + " **You are now following this event!** You will be notified ~5 minutes before it starts").setEphemeral(true)
                 .flatMap(msg -> {
                     final Message message = event.getMessage();
