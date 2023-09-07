@@ -28,6 +28,7 @@ guild:
     partner: 970412696841355316
     community-events: 1134909670675447818
     booster-pass: 1146217597747073064
+    no-hosting: 1138603870935859260
 
     # Role IDs for event pings
     event-pings:

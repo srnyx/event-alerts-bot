@@ -66,6 +66,7 @@ public class EaConfig {
             public final long partner;
             public final long communityEvents;
             public final long boosterPass;
+            public final long noHosting;
             @NotNull public final EventPingsNode eventPings;
 
             public RolesNode(@NotNull ConfigurationNode node) {
@@ -73,6 +74,7 @@ public class EaConfig {
                 this.partner = node.node("partner").getLong();
                 this.communityEvents = node.node("community-events").getLong();
                 this.boosterPass = node.node("booster-pass").getLong();
+                this.noHosting = node.node("no-hosting").getLong();
                 this.eventPings = new EventPingsNode(node.node("event-pings"));
             }
 

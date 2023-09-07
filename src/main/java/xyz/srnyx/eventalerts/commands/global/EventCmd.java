@@ -65,7 +65,20 @@ public class EventCmd extends ApplicationCommand {
                              @AppOption(description = "The server IP for the event") @NotNull String ip,
                              @AppOption(description = "The version of the server") @NotNull String version,
                              @AppOption(description = "The prize of the event") @Nullable String prize) {
+        // Check if user has No Hosting
+        final EaConfig.GuildNode.RolesNode roles = eventAlerts.config.guild.roles;
         final long userId = event.getUser().getIdLong();
+        if (roles.hasRole(userId, roles.noHosting)) {
+            event.replyEmbeds(eventAlerts.embeds.noPermission()).setEphemeral(true).queue();
+            return;
+        }
+
+        // Check if user has Partner or Community Events
+        final EventData data = new EventData(eventAlerts, title, ip, version, userId, prize);
+        if (!data.isPartner && !roles.hasRole(userId, roles.communityEvents)) {
+            event.replyEmbeds(eventAlerts.embeds.noPermission()).setEphemeral(true).queue();
+            return;
+        }
         final long now = System.currentTimeMillis();
 
         // Check cooldown
@@ -92,15 +105,7 @@ public class EventCmd extends ApplicationCommand {
                 event.reply(LazyEmoji.NO + " **Invalid time format!** Please use one of the formats below\n### Epoch/Unix timestamp\n- [Epoch Converter](<https://epochconverter.com>)\n- [HammerTime](<https://hammertime.cyou>)\n### Duration/relative\n- `s` = seconds\n- `m` = minutes\n- `h` = hours\n- `d` = days\n- `w` = weeks\n- `mo` = months\n- `y` = years\n***Example:** `2h30m10s`*").setEphemeral(true).queue();
                 return;
             }
-            timeLong = now + duration.toMillis();
-        }
-
-        // Get data
-        final EaConfig.GuildNode.RolesNode roles = eventAlerts.config.guild.roles;
-        final EventData data = new EventData(eventAlerts, title, timeLong, ip, version, userId, prize);
-        if (!data.isPartner && !roles.hasRole(userId, roles.communityEvents)) {
-            event.replyEmbeds(eventAlerts.embeds.noPermission()).setEphemeral(true).queue();
-            return;
+            data.time = now + duration.toMillis();
         }
 
         // Send message
@@ -178,14 +183,14 @@ public class EventCmd extends ApplicationCommand {
         private final boolean isPartner;
         @NotNull private final List<Long> roles;
         @NotNull private final String title;
-        private final long time;
+        @Nullable private Long time;
         @NotNull private final String ip;
         @NotNull private final String version;
         private final long host;
         @Nullable private final String prize;
         @Nullable private String description;
 
-        private EventData(@NotNull EventAlerts eventAlerts, @NotNull List<Long> roles, @NotNull String title, long time, @NotNull String ip, @NotNull String version, long host, @Nullable String prize, @Nullable String description) {
+        private EventData(@NotNull EventAlerts eventAlerts, @NotNull List<Long> roles, @NotNull String title, @Nullable Long time, @NotNull String ip, @NotNull String version, long host, @Nullable String prize, @Nullable String description) {
             this.eventAlerts = eventAlerts;
             this.isPartner = eventAlerts.config.guild.roles.hasRole(host, eventAlerts.config.guild.roles.partner);
             this.roles = roles;
@@ -198,8 +203,8 @@ public class EventCmd extends ApplicationCommand {
             this.description = description;
         }
 
-        private EventData(@NotNull EventAlerts eventAlerts, @NotNull String title, long time, @NotNull String ip, @NotNull String version, long host, @Nullable String prize) {
-            this(eventAlerts, new ArrayList<>(), title, time, ip, version, host, prize, null);
+        private EventData(@NotNull EventAlerts eventAlerts, @NotNull String title, @NotNull String ip, @NotNull String version, long host, @Nullable String prize) {
+            this(eventAlerts, new ArrayList<>(), title, null, ip, version, host, prize, null);
         }
 
         @NotNull
@@ -212,8 +217,9 @@ public class EventCmd extends ApplicationCommand {
 
         @NotNull
         private String getTimeString() {
-            final String timeString = String.valueOf(time / 1000L);
-            return "<t:" + timeString + "> (<t:" + timeString + ":R>)";
+            if (time == null) return "N/A";
+            final String string = "<t:" + (time / 1000L);
+            return string + "> (" + string + ":R>)";
         }
 
         @NotNull
@@ -327,16 +333,16 @@ public class EventCmd extends ApplicationCommand {
                             reactions.add(Emoji.fromUnicode("👥"));
                         }
                         // Send/edit messages
-                        final boolean notification = time - System.currentTimeMillis() > 300000;
+                        final boolean notification = time != null && time - System.currentTimeMillis() > 300000;
                         final String rolesString = getRolesString();
                         channel.sendMessage(rolesString.isEmpty() ? "**Loading...** please wait" : rolesString)
                                 .flatMap(msg -> {
                                     final MessageEditAction editAction = msg.editMessage(getMessage(new MessageEditBuilder(), false));
                                     if (notification) {
+                                        eventAlerts.mongo.eventCollection.collection.insertOne(new Event(channel.getIdLong(), msg.getIdLong(), title.toUpperCase(), host, time));
                                         editAction.setActionRow(
                                             Components.successButton(BUTTON_SUBSCRIBE).build(LazyEmoji.YES_CLEAR.getButtonContent("Follow (0)")),
                                             Components.dangerButton(BUTTON_UNSUBSCRIBE).build(LazyEmoji.NO_CLEAR_DARK.getButtonContent("Unfollow")));
-                                        eventAlerts.mongo.eventCollection.collection.insertOne(new Event(channel.getIdLong(), msg.getIdLong(), title.toUpperCase(), host, time));
                                     }
                                     return editAction;
                                 })
