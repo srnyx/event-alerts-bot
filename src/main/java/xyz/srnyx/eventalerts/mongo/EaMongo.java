@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 
 
 public class EaMongo {
+    @NotNull public final EaCollection<Booster> boosterCollection;
     @NotNull public final EaCollection<Event> eventCollection;
     @NotNull public final EaCollection<Partner> partnerCollection;
     @NotNull public final EaCollection<Server> serverCollection;
@@ -34,6 +35,7 @@ public class EaMongo {
     public EaMongo(@NotNull EaConfig.MongoNode node) {
         if (node.connection == null || node.database == null) throw new IllegalStateException("Mongo configuration is invalid!");
         final MongoDatabase database = MongoClients.create(node.connection).getDatabase(node.database).withCodecRegistry(CodecRegistries.fromRegistries(MongoClientSettings.getDefaultCodecRegistry(), CodecRegistries.fromProviders(PojoCodecProvider.builder().automatic(true).build())));
+        boosterCollection = new EaCollection<>(database, "boosters", Booster.class);
         eventCollection = new EaCollection<>(database, "events", Event.class);
         partnerCollection = new EaCollection<>(database, "partners", Partner.class);
         serverCollection = new EaCollection<>(database, "servers", Server.class);

@@ -12,7 +12,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import org.spongepowered.configurate.ConfigurationNode;
-import xyz.srnyx.lazylibrary.LazyLibrary;
 
 import java.util.List;
 
@@ -25,7 +24,6 @@ public class EaConfig {
 
     public EaConfig(@NotNull EventAlerts eventAlerts) {
         this.eventAlerts = eventAlerts;
-
         final ConfigurationNode yaml = eventAlerts.settings.fileSettings.file.yaml;
         this.mongo = new MongoNode(yaml.node("mongo"));
         this.guild = new GuildNode(yaml.node("guild"));
@@ -67,21 +65,27 @@ public class EaConfig {
             public final long mod;
             public final long partner;
             public final long communityEvents;
+            public final long boosterPass;
             @NotNull public final EventPingsNode eventPings;
 
             public RolesNode(@NotNull ConfigurationNode node) {
                 this.mod = node.node("mod").getLong();
                 this.partner = node.node("partner").getLong();
                 this.communityEvents = node.node("community-events").getLong();
+                this.boosterPass = node.node("booster-pass").getLong();
                 this.eventPings = new EventPingsNode(node.node("event-pings"));
             }
 
-            public boolean hasRole(long user, long role) {
+            @Nullable
+            public Role getRole(long id) {
                 final Guild jdaGuild = getGuild();
-                if (jdaGuild == null) return false;
-                final Role jdaRole = jdaGuild.getRoleById(role);
+                return jdaGuild == null ? null : jdaGuild.getRoleById(id);
+            }
+
+            public boolean hasRole(long user, long role) {
+                final Role jdaRole = getRole(role);
                 if (jdaRole == null) return false;
-                final Member member = jdaGuild.retrieveMemberById(user).complete();
+                final Member member = jdaRole.getGuild().retrieveMemberById(user).complete();
                 return member != null && member.getRoles().contains(jdaRole);
             }
 

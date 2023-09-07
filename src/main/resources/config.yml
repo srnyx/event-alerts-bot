@@ -27,6 +27,8 @@ guild:
     mod: 1137159680221782097
     partner: 970412696841355316
     community-events: 1134909670675447818
+    booster-pass: 1146217597747073064
+
     # Role IDs for event pings
     event-pings:
       community: 980950599946362900
