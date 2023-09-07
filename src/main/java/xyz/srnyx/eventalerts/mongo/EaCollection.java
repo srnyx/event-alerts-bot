@@ -16,9 +16,6 @@ import java.util.List;
 
 
 public class EaCollection<T> {
-    @NotNull private static final FindOneAndUpdateOptions RETURN_AFTER = getReturnAfter();
-    @NotNull private static final FindOneAndUpdateOptions UPSERT = getReturnAfter().upsert(true);
-
     @NotNull public final MongoCollection<T> collection;
 
     public EaCollection(@NotNull MongoDatabase database, @NotNull String name, @NotNull Class<T> clazz) {
@@ -46,12 +43,12 @@ public class EaCollection<T> {
 
     @Nullable
     public T findOneAndUpdate(@NotNull Bson filter, @NotNull Bson update) {
-        return collection.findOneAndUpdate(filter, update, RETURN_AFTER);
+        return collection.findOneAndUpdate(filter, update, getReturnAfter());
     }
 
     @Nullable
     public T findOneAndUpsert(@NotNull Bson filter, @NotNull Bson update) {
-        return collection.findOneAndUpdate(filter, update, UPSERT);
+        return collection.findOneAndUpdate(filter, update, getUpsert());
     }
 
     public void deleteOne(@NotNull Bson filter) {
@@ -65,5 +62,10 @@ public class EaCollection<T> {
     @NotNull
     private static FindOneAndUpdateOptions getReturnAfter() {
         return new FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER);
+    }
+
+    @NotNull
+    private static FindOneAndUpdateOptions getUpsert() {
+        return getReturnAfter().upsert(true);
     }
 }
