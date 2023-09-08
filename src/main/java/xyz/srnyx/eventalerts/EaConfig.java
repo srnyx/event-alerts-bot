@@ -18,14 +18,16 @@ import java.util.List;
 
 public class EaConfig {
     @NotNull private final EventAlerts eventAlerts;
-
     @NotNull public final MongoNode mongo;
+    @Nullable public final String advertisingStatus;
     @NotNull public final GuildNode guild;
 
     public EaConfig(@NotNull EventAlerts eventAlerts) {
         this.eventAlerts = eventAlerts;
         final ConfigurationNode yaml = eventAlerts.settings.fileSettings.file.yaml;
         this.mongo = new MongoNode(yaml.node("mongo"));
+        final String advertisingStatusValue = yaml.node("advertising-status").getString();
+        this.advertisingStatus = advertisingStatusValue == null ? null : advertisingStatusValue.toLowerCase();
         this.guild = new GuildNode(yaml.node("guild"));
     }
 
@@ -66,6 +68,7 @@ public class EaConfig {
             public final long partner;
             public final long communityEvents;
             public final long boosterPass;
+            public final long advertising;
             public final long noHosting;
             @NotNull public final EventPingsNode eventPings;
 
@@ -74,6 +77,7 @@ public class EaConfig {
                 this.partner = node.node("partner").getLong();
                 this.communityEvents = node.node("community-events").getLong();
                 this.boosterPass = node.node("booster-pass").getLong();
+                this.advertising = node.node("advertising").getLong();
                 this.noHosting = node.node("no-hosting").getLong();
                 this.eventPings = new EventPingsNode(node.node("event-pings"));
             }

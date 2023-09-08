@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.utils.cache.CacheFlag;
 
 import org.jetbrains.annotations.NotNull;
 
+import xyz.srnyx.eventalerts.listeners.UserListener;
 import xyz.srnyx.eventalerts.mongo.EaMongo;
 import xyz.srnyx.eventalerts.mongo.objects.Strike;
 
@@ -29,6 +30,9 @@ public class EventAlerts extends LazyLibrary {
     @NotNull public final Map<Long, Long> userEventCooldowns = new ConcurrentHashMap<>();
 
     public EventAlerts() {
+        // Listeners
+        jda.addEventListener(new UserListener(this));
+
         // Presence (status)
         jda.getPresence().setActivity(Activity.playing("oink oink"));
 
@@ -52,9 +56,10 @@ public class EventAlerts extends LazyLibrary {
                         "xyz.srnyx.eventalerts.apps",
                         "xyz.srnyx.eventalerts.commands",
                         "xyz.srnyx.eventalerts.components")
-                .gatewayIntents(GatewayIntent.MESSAGE_CONTENT)
+                .gatewayIntents(
+                        GatewayIntent.MESSAGE_CONTENT,
+                        GatewayIntent.GUILD_PRESENCES)
                 .disabledCacheFlags(
-                        CacheFlag.ACTIVITY,
                         CacheFlag.EMOJI,
                         CacheFlag.VOICE_STATE,
                         CacheFlag.STICKER,
