@@ -26,10 +26,10 @@ import org.jetbrains.annotations.Nullable;
 import xyz.srnyx.eventalerts.EventAlerts;
 import xyz.srnyx.eventalerts.mongo.objects.Strike;
 
+import xyz.srnyx.javautilities.manipulation.DurationParser;
+
 import xyz.srnyx.lazylibrary.LazyEmbed;
 import xyz.srnyx.lazylibrary.LazyEmoji;
-import xyz.srnyx.lazylibrary.LazyLibrary;
-import xyz.srnyx.lazylibrary.utility.DurationParser;
 
 import java.time.Duration;
 import java.util.List;

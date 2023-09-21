@@ -16,8 +16,8 @@ addCompilerArgs("-parameters")
 application.mainClass.set("xyz.srnyx.eventalerts.EventAlerts")
 
 dependencies {
-    implementation("xyz.srnyx", "lazy-library", "e741e60eb9")
     implementation("net.dv8tion", "JDA", "5.0.0-beta.13")
+    implementation("xyz.srnyx", "lazy-library", "46933e1b5e")
     implementation("org.mongodb", "mongodb-driver-sync", "4.10.2")
 }
 

@@ -37,10 +37,11 @@ import xyz.srnyx.eventalerts.EaConfig;
 import xyz.srnyx.eventalerts.EventAlerts;
 import xyz.srnyx.eventalerts.mongo.objects.Event;
 
+import xyz.srnyx.javautilities.StringUtility;
+import xyz.srnyx.javautilities.manipulation.DurationParser;
+
 import xyz.srnyx.lazylibrary.LazyEmbed;
 import xyz.srnyx.lazylibrary.LazyEmoji;
-import xyz.srnyx.lazylibrary.utility.DurationParser;
-import xyz.srnyx.lazylibrary.utility.LazyUtilities;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -314,12 +315,10 @@ public class EventCmd extends ApplicationCommand {
                         // Get channel
                         final GuildMessageChannel channel = isPartner ? guild.channels.getPartnerEvents() : guild.channels.getCommunityEvents();
                         if (channel == null) {
-                            buttonEvent.editMessage(LazyEmoji.NO + " The channel for this event is not set!")
-                                    .setEmbeds()
-                                    .setComponents()
-                                    .queue();
+                            buttonEvent.editMessage(LazyEmoji.NO + " The channel for this event is not set!").setEmbeds().setComponents().queue();
                             return;
                         }
+                        buttonEvent.deferEdit().queue();
                         eventAlerts.userEventCooldowns.put(host, System.currentTimeMillis() + 900000L);
                         // Get reactions
                         final List<Emoji> reactions = new ArrayList<>();
@@ -347,8 +346,8 @@ public class EventCmd extends ApplicationCommand {
                                     return editAction;
                                 })
                                 .flatMap(msg -> {
-                                    RestAction<?> action = msg.createThreadChannel(LazyUtilities.shorten(title, 100))
-                                            .flatMap(thread -> buttonEvent.editMessage(LazyEmoji.YES + " **Event posted!** See it [here](<" + msg.getJumpUrl() + ">)").setComponents());
+                                    RestAction<?> action = msg.createThreadChannel(StringUtility.shorten(title, 100))
+                                            .flatMap(thread -> buttonEvent.getHook().editOriginal(LazyEmoji.YES + " **Event posted!** See it [here](<" + msg.getJumpUrl() + ">)").setComponents());
                                     if (!reactions.isEmpty()) for (final Emoji reaction : reactions) action = action.flatMap(reply -> msg.addReaction(reaction));
                                     return action;
                                 })
