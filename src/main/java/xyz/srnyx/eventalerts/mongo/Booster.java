@@ -1,4 +1,4 @@
-package xyz.srnyx.eventalerts.mongo.objects;
+package xyz.srnyx.eventalerts.mongo;
 
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Role;
@@ -26,6 +26,6 @@ public class Booster {
                     .flatMap(passMember -> guild.removeRoleFromMember(passMember, role))
                     .queue());
         }
-        eventAlerts.mongo.boosterCollection.deleteOne("_id", id);
+        eventAlerts.getMongoCollection(Booster.class).deleteOne("_id", id);
     }
 }

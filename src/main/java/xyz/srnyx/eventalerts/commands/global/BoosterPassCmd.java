@@ -21,7 +21,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import xyz.srnyx.eventalerts.EventAlerts;
-import xyz.srnyx.eventalerts.mongo.objects.Booster;
+import xyz.srnyx.eventalerts.mongo.Booster;
 
 import xyz.srnyx.lazylibrary.LazyEmoji;
 
@@ -49,7 +49,7 @@ public class BoosterPassCmd extends ApplicationCommand {
         }
 
         // Check if still boosting
-        final Booster booster = eventAlerts.mongo.boosterCollection.findOne("user", member.getIdLong());
+        final Booster booster = eventAlerts.getMongoCollection(Booster.class).findOne("user", member.getIdLong());
         if (!member.isBoosting()) {
             if (booster != null) booster.removePasses(eventAlerts);
             event.reply(LazyEmoji.NO + " You aren't boosting the server!").setEphemeral(true).queue();
@@ -58,7 +58,7 @@ public class BoosterPassCmd extends ApplicationCommand {
 
         // Check if user has any passes
         if (booster == null || booster.passes.isEmpty()) {
-            if (booster != null) eventAlerts.mongo.boosterCollection.deleteOne("_id", booster.id);
+            if (booster != null) eventAlerts.getMongoCollection(Booster.class).deleteOne("_id", booster.id);
             event.reply(LazyEmoji.NO + " You don't have any booster passes!").setEphemeral(true).queue();
             return;
         }
@@ -102,7 +102,7 @@ public class BoosterPassCmd extends ApplicationCommand {
         }
 
         // Give pass
-        eventAlerts.mongo.boosterCollection.collection.updateOne(Filters.eq("user", userId), Updates.addToSet("passes", targetId), new UpdateOptions().upsert(true));
+        eventAlerts.getMongoCollection(Booster.class).collection.updateOne(Filters.eq("user", userId), Updates.addToSet("passes", targetId), new UpdateOptions().upsert(true));
         data.guild.addRoleToMember(data.member, data.role)
                 .flatMap(v -> event.reply(LazyEmoji.YES + " You've given a pass to " + mention + "!").setEphemeral(true))
                 .queue();
@@ -120,7 +120,7 @@ public class BoosterPassCmd extends ApplicationCommand {
 
         // Check if user has any passes
         if (data.booster == null || data.booster.passes.isEmpty()) {
-            if (data.booster != null) eventAlerts.mongo.boosterCollection.deleteOne("_id", data.booster.id);
+            if (data.booster != null) eventAlerts.getMongoCollection(Booster.class).deleteOne("_id", data.booster.id);
             event.reply(LazyEmoji.NO + " You aren't using any of your passes!").setEphemeral(true).queue();
             return;
         }
@@ -141,7 +141,7 @@ public class BoosterPassCmd extends ApplicationCommand {
         }
 
         // Remove pass
-        eventAlerts.mongo.boosterCollection.collection.updateOne(Filters.eq("user", userId), Updates.pull("passes", targetId));
+        eventAlerts.getMongoCollection(Booster.class).collection.updateOne(Filters.eq("user", userId), Updates.pull("passes", targetId));
         data.guild.removeRoleFromMember(data.member, data.role)
                 .flatMap(v -> event.reply(LazyEmoji.YES + " You've removed a pass from " + mention + "!").setEphemeral(true))
                 .queue();
@@ -172,7 +172,7 @@ public class BoosterPassCmd extends ApplicationCommand {
 
         // Check if still boosting
         final long userId = event.getUser().getIdLong();
-        final Booster booster = eventAlerts.mongo.boosterCollection.findOne("user", userId);
+        final Booster booster = eventAlerts.getMongoCollection(Booster.class).findOne("user", userId);
         if (!guild.retrieveMemberById(userId).complete().isBoosting()) {
             if (booster != null) booster.removePasses(eventAlerts);
             event.reply(LazyEmoji.NO + " You aren't boosting the server!").setEphemeral(true).queue();

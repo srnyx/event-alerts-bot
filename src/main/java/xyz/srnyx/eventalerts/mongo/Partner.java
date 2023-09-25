@@ -1,4 +1,4 @@
-package xyz.srnyx.eventalerts.mongo.objects;
+package xyz.srnyx.eventalerts.mongo;
 
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;

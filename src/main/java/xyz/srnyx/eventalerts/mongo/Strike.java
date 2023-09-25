@@ -1,9 +1,11 @@
-package xyz.srnyx.eventalerts.mongo.objects;
+package xyz.srnyx.eventalerts.mongo;
 
 import com.mongodb.client.model.Filters;
 
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.exceptions.ErrorHandler;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.requests.RestAction;
 
 import org.bson.BsonValue;
@@ -14,12 +16,15 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import xyz.srnyx.eventalerts.EventAlerts;
-import xyz.srnyx.eventalerts.mongo.EaMongo;
+import xyz.srnyx.eventalerts.utility.MongoUtility;
 
+import xyz.srnyx.lazylibrary.LazyCollection;
 import xyz.srnyx.lazylibrary.LazyEmbed;
 
 
 public class Strike {
+    @NotNull private static final ErrorHandler IGNORE_UNKNOWN_MESSAGE = new ErrorHandler().ignore(ErrorResponse.UNKNOWN_MESSAGE);
+
     @BsonProperty(value = "_id") public ObjectId id;
     @BsonProperty(value = "strike_id") public Integer strikeId;
     public Long user;
@@ -32,7 +37,8 @@ public class Strike {
     public Strike() {}
 
     public Strike(@NotNull EventAlerts eventAlerts, @NotNull Long user, @NotNull String reason, @NotNull Long striker, @Nullable Long expire) {
-        this.strikeId = eventAlerts.mongo.strikeCollection.findMany(Filters.exists("strike_id")).stream()
+        final LazyCollection<Strike> collection = eventAlerts.getMongoCollection(Strike.class);
+        this.strikeId = collection.findMany(Filters.exists("strike_id")).stream()
                 .mapToInt(strike -> strike.strikeId)
                 .max()
                 .orElse(0) + 1;
@@ -41,13 +47,13 @@ public class Strike {
         this.striker = striker;
         this.timestamp = System.currentTimeMillis();
         this.expire = expire;
-        final BsonValue newId = eventAlerts.mongo.strikeCollection.collection.insertOne(this).getInsertedId();
+        final BsonValue newId = collection.collection.insertOne(this).getInsertedId();
         if (newId != null) this.id = newId.asObjectId().getValue();
     }
 
     @Nullable
     public RestAction<Message> getMessage(@NotNull EventAlerts eventAlerts) {
-        return EaMongo.getMessage(eventAlerts, eventAlerts.config.guild.channels.strikes, message);
+        return MongoUtility.getMessage(eventAlerts, eventAlerts.config.guild.channels.strikes, message);
     }
 
     public boolean hasExpired() {
@@ -56,8 +62,8 @@ public class Strike {
 
     public void delete(@NotNull EventAlerts eventAlerts) {
         final RestAction<Message> messageAction = getMessage(eventAlerts);
-        if (messageAction != null) messageAction.flatMap(Message::delete).queue();
-        eventAlerts.mongo.strikeCollection.collection.deleteOne(Filters.eq("_id", id));
+        if (messageAction != null) messageAction.flatMap(Message::delete).queue(s -> {}, IGNORE_UNKNOWN_MESSAGE);
+        eventAlerts.getMongoCollection(Strike.class).collection.deleteOne(Filters.eq("_id", id));
     }
 
     @NotNull

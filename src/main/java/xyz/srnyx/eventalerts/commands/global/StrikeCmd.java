@@ -24,7 +24,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import xyz.srnyx.eventalerts.EventAlerts;
-import xyz.srnyx.eventalerts.mongo.objects.Strike;
+import xyz.srnyx.eventalerts.mongo.Strike;
 
 import xyz.srnyx.javautilities.manipulation.DurationParser;
 
@@ -59,7 +59,7 @@ public class StrikeCmd extends ApplicationCommand {
         }
 
         // Check if partner has strikes
-        final List<Strike> strikes = eventAlerts.mongo.getStrikes(partnerId);
+        final List<Strike> strikes = eventAlerts.getStrikes(partnerId);
         if (strikes.isEmpty()) {
             event.reply(LazyEmoji.NO + " " + mention + " has no strikes!").setEphemeral(true).queue();
             return;
@@ -117,7 +117,7 @@ public class StrikeCmd extends ApplicationCommand {
         final User partnerUser = partner.getUser();
         final String name = partnerUser.getName();
         final Strike strike = new Strike(eventAlerts, partnerId, reason, event.getUser().getIdLong(), expireTime);
-        final int strikes = eventAlerts.mongo.getStrikes(partnerId).size();
+        final int strikes = eventAlerts.getStrikes(partnerId).size();
         event.replyEmbeds(strike.toEmbed()
                         .setTitle("Strike #" + strikes + " for " + name)
                         .setDescription(LazyEmoji.YES + " Successfully added a strike to " + mention)
@@ -127,7 +127,7 @@ public class StrikeCmd extends ApplicationCommand {
                         .setTitle("Strike #" + strikes + " for " + name)
                         .build(eventAlerts)))
                 .flatMap(message -> {
-                    eventAlerts.mongo.strikeCollection.updateOne(Filters.eq("strike_id", strike.strikeId), Updates.set("message", message.getIdLong()));
+                    eventAlerts.getMongoCollection(Strike.class).updateOne(Filters.eq("strike_id", strike.strikeId), Updates.set("message", message.getIdLong()));
                     return partnerUser.openPrivateChannel();
                 })
                 .flatMap(privateChannel -> privateChannel.sendMessageEmbeds(strike.toEmbed()
@@ -146,7 +146,7 @@ public class StrikeCmd extends ApplicationCommand {
         if (eventAlerts.config.guild.roles.checkDontHaveRole(event, eventAlerts.config.guild.roles.mod)) return;
 
         // Get strike
-        final Strike strike = eventAlerts.mongo.strikeCollection.findOne("strike_id", id);
+        final Strike strike = eventAlerts.getMongoCollection(Strike.class).findOne("strike_id", id);
         if (strike == null) {
             event.reply(LazyEmoji.NO + " Strike not found!").setEphemeral(true).queue();
             return;
@@ -159,7 +159,7 @@ public class StrikeCmd extends ApplicationCommand {
 
     @AutocompletionHandler(name = AC_DELETE_ID) @NotNull
     public List<Command.Choice> acDeleteId(@NotNull CommandAutoCompleteInteractionEvent event) {
-        return eventAlerts.mongo.strikeCollection.findMany(Filters.exists("strike_id")).stream()
+        return eventAlerts.getMongoCollection(Strike.class).findMany(Filters.exists("strike_id")).stream()
                 .map(strike -> new Command.Choice(strike.strikeId.toString(), strike.strikeId))
                 .toList();
     }

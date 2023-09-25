@@ -40,7 +40,7 @@ import org.jetbrains.annotations.Nullable;
 
 import xyz.srnyx.eventalerts.EventAlerts;
 import xyz.srnyx.eventalerts.ServerTag;
-import xyz.srnyx.eventalerts.mongo.objects.Server;
+import xyz.srnyx.eventalerts.mongo.Server;
 
 import xyz.srnyx.lazylibrary.LazyEmoji;
 
@@ -88,7 +88,7 @@ public class ServerCmd extends ApplicationCommand {
         }
 
         // Get server
-        final Server server = eventAlerts.mongo.serverCollection.findOne("user", partnerId);
+        final Server server = eventAlerts.getMongoCollection(Server.class).findOne("user", partnerId);
         if (server == null) {
             event.reply(LazyEmoji.NO + " <@" + partnerId + "> has not set a server!").setEphemeral(true).queue();
             return;
@@ -114,7 +114,7 @@ public class ServerCmd extends ApplicationCommand {
         final Bson filter = Filters.eq("user", user.getIdLong());
 
         // Check if server is already set
-        if (eventAlerts.mongo.serverCollection.findOne(filter) != null) {
+        if (eventAlerts.getMongoCollection(Server.class).findOne(filter) != null) {
             event.reply(LazyEmoji.NO + " You have already set a server! Use </server edit:1140888072897183776> to modify it").setEphemeral(true).queue();
             return;
         }
@@ -204,7 +204,7 @@ public class ServerCmd extends ApplicationCommand {
         if (representativeList != null) update = Updates.combine(update, Updates.set("representatives", representativeList));
         if (colorInt != null) update = Updates.combine(update, Updates.set("color", colorInt));
         update = Updates.combine(update, Updates.set("thumbnail", thumbnail != null ? thumbnail : user.getEffectiveAvatarUrl()));
-        final Server server = eventAlerts.mongo.serverCollection.findOneAndUpsert(filter, update);
+        final Server server = eventAlerts.getMongoCollection(Server.class).findOneAndUpsert(filter, update);
         if (server == null) {
             event.reply(LazyEmoji.NO + " An error occurred while setting your server!").setEphemeral(true).queue();
             return;
@@ -224,7 +224,7 @@ public class ServerCmd extends ApplicationCommand {
                         }).setMaxValues(5).addOptions(ServerTag.OPTIONS).build())
                 .addActionRow(
                         Components.successButton(buttonEvent -> {
-                            eventAlerts.mongo.serverCollection.updateOne(filter, tags.isEmpty() ? Updates.unset("tags") : Updates.set("tags", tags));
+                            eventAlerts.getMongoCollection(Server.class).updateOne(filter, tags.isEmpty() ? Updates.unset("tags") : Updates.set("tags", tags));
 
                             // Description setting
                             buttonEvent.replyModal(Modals.create("Server Description", MODAL_SET_DESCRIPTION)
@@ -245,7 +245,7 @@ public class ServerCmd extends ApplicationCommand {
         if (eventAlerts.config.guild.roles.checkDontHaveRole(event, eventAlerts.config.guild.roles.partner)) return;
 
         // Get server
-        final Server server = eventAlerts.mongo.serverCollection.findOne("user", event.getUser().getIdLong());
+        final Server server = eventAlerts.getMongoCollection(Server.class).findOne("user", event.getUser().getIdLong());
         if (server == null) {
             event.reply(LazyEmoji.NO + " You have not set a server!").setEphemeral(true).queue();
             return;
@@ -264,7 +264,7 @@ public class ServerCmd extends ApplicationCommand {
                                     @ModalInput(name = "description") @NotNull String description) {
         event.deferEdit().queue();
         final Bson filter = Filters.eq("user", event.getUser().getIdLong());
-        final Server server = eventAlerts.mongo.serverCollection.findOneAndUpdate(filter, Updates.set("description", description));
+        final Server server = eventAlerts.getMongoCollection(Server.class).findOneAndUpdate(filter, Updates.set("description", description));
         if (server == null) {
             event.getHook().editOriginal(LazyEmoji.NO + " An error occurred while setting your description!")
                     .setEmbeds()
@@ -282,7 +282,7 @@ public class ServerCmd extends ApplicationCommand {
                                         .setComponents()))
                                 .build(LazyEmoji.YES_CLEAR.getButtonContent("All good!")),
                         Components.dangerButton(buttonEvent -> {
-                            eventAlerts.mongo.serverCollection.deleteOne(filter);
+                            eventAlerts.getMongoCollection(Server.class).deleteOne(filter);
                             buttonEvent.editMessage(LazyEmoji.NO + " **Yikes!** You'll have to restart the process, here's a copy of your description: ```" + description + "```")
                                     .setEmbeds()
                                     .setComponents()
@@ -335,7 +335,7 @@ public class ServerCmd extends ApplicationCommand {
                     ActionRow.of(
                             Components.successButton(buttonEvent -> {
                                 // Get server
-                                final Server server = eventAlerts.mongo.serverCollection.findOneAndUpdate(Filters.eq("user", event.getUser().getIdLong()), tags.isEmpty() ? Updates.unset("tags") : Updates.set("tags", tags));
+                                final Server server = eventAlerts.getMongoCollection(Server.class).findOneAndUpdate(Filters.eq("user", event.getUser().getIdLong()), tags.isEmpty() ? Updates.unset("tags") : Updates.set("tags", tags));
                                 if (server == null) {
                                     buttonEvent.editMessage(LazyEmoji.NO + " An error occurred while updating your server tags!")
                                             .setEmbeds()
@@ -370,7 +370,7 @@ public class ServerCmd extends ApplicationCommand {
                     ActionRow.of(
                             Components.successButton(buttonEvent -> {
                                 // Get server
-                                final Server server = eventAlerts.mongo.serverCollection.findOneAndUpdate(Filters.eq("user", event.getUser().getIdLong()), representatives.isEmpty() ? Updates.unset("representatives") : Updates.set("representatives", representatives));
+                                final Server server = eventAlerts.getMongoCollection(Server.class).findOneAndUpdate(Filters.eq("user", event.getUser().getIdLong()), representatives.isEmpty() ? Updates.unset("representatives") : Updates.set("representatives", representatives));
                                 if (server == null) {
                                     buttonEvent.editMessage(LazyEmoji.NO + " An error occurred while updating your server representatives!")
                                             .setEmbeds()
@@ -415,7 +415,7 @@ public class ServerCmd extends ApplicationCommand {
 
     @JDAButtonListener(name = BUTTON_EDIT_DONE)
     public void buttonEditDone(@NotNull ButtonEvent event) {
-        final Server updatedServer = eventAlerts.mongo.serverCollection.findOne("user", event.getUser().getIdLong());
+        final Server updatedServer = eventAlerts.getMongoCollection(Server.class).findOne("user", event.getUser().getIdLong());
         if (updatedServer == null) {
             event.reply(LazyEmoji.NO + " An error occurred while updating your server!").setEphemeral(true).queue();
             return;
@@ -433,7 +433,7 @@ public class ServerCmd extends ApplicationCommand {
                               @ModalInput(name = "name") @NotNull String name) {
         event.deferEdit().queue();
         final InteractionHook hook = event.getHook();
-        final Server server = eventAlerts.mongo.serverCollection.findOneAndUpdate(Filters.eq("user", event.getUser().getIdLong()), Updates.set("name", name));
+        final Server server = eventAlerts.getMongoCollection(Server.class).findOneAndUpdate(Filters.eq("user", event.getUser().getIdLong()), Updates.set("name", name));
         if (server == null) {
             hook.editOriginal(LazyEmoji.NO + " An error occurred while setting your name!")
                     .setEmbeds()
@@ -452,7 +452,7 @@ public class ServerCmd extends ApplicationCommand {
                                      @ModalInput(name = "description") @NotNull String description) {
         event.deferEdit().queue();
         final InteractionHook hook = event.getHook();
-        final Server server = eventAlerts.mongo.serverCollection.findOneAndUpdate(Filters.eq("user", event.getUser().getIdLong()), Updates.set("description", description));
+        final Server server = eventAlerts.getMongoCollection(Server.class).findOneAndUpdate(Filters.eq("user", event.getUser().getIdLong()), Updates.set("description", description));
         if (server == null) {
             hook.editOriginal(LazyEmoji.NO + " An error occurred while setting your description!")
                     .setEmbeds()
@@ -471,7 +471,7 @@ public class ServerCmd extends ApplicationCommand {
                                 @ModalInput(name = "invite") @NotNull String invite) {
         event.deferEdit().queue();
         final InteractionHook hook = event.getHook();
-        final Server server = eventAlerts.mongo.serverCollection.findOneAndUpdate(Filters.eq("user", event.getUser().getIdLong()), Updates.set("invite", invite));
+        final Server server = eventAlerts.getMongoCollection(Server.class).findOneAndUpdate(Filters.eq("user", event.getUser().getIdLong()), Updates.set("invite", invite));
         if (server == null) {
             hook.editOriginal(LazyEmoji.NO + " An error occurred while setting your invite!")
                     .setEmbeds()
@@ -512,7 +512,7 @@ public class ServerCmd extends ApplicationCommand {
         }
 
         // Update color
-        final Server server = eventAlerts.mongo.serverCollection.findOneAndUpdate(Filters.eq("user", event.getUser().getIdLong()), Updates.set("color", colorInt));
+        final Server server = eventAlerts.getMongoCollection(Server.class).findOneAndUpdate(Filters.eq("user", event.getUser().getIdLong()), Updates.set("color", colorInt));
         if (server == null) {
             hook.editOriginal(LazyEmoji.NO + " An error occurred while setting your color!")
                     .setEmbeds()
@@ -531,7 +531,7 @@ public class ServerCmd extends ApplicationCommand {
                                    @ModalInput(name = "thumbnail") @NotNull String thumbnail) {
         event.deferEdit().queue();
         final InteractionHook hook = event.getHook();
-        final Server server = eventAlerts.mongo.serverCollection.findOneAndUpdate(Filters.eq("user", event.getUser().getIdLong()), Updates.set("thumbnail", thumbnail));
+        final Server server = eventAlerts.getMongoCollection(Server.class).findOneAndUpdate(Filters.eq("user", event.getUser().getIdLong()), Updates.set("thumbnail", thumbnail));
         if (server == null) {
             hook.editOriginal(LazyEmoji.NO + " An error occurred while setting your thumbnail!")
                     .setEmbeds()
@@ -574,7 +574,7 @@ public class ServerCmd extends ApplicationCommand {
         final GuildMessageChannel channel = eventAlerts.config.guild.channels.getServers();
         if (channel != null) channel.sendMessageEmbeds(server.getEmbed().build(eventAlerts))
                 .flatMap(message -> {
-                    eventAlerts.mongo.serverCollection.updateOne(Filters.eq("user", event.getUser().getIdLong()), Updates.set("message", message.getIdLong()));
+                    eventAlerts.getMongoCollection(Server.class).updateOne(Filters.eq("user", event.getUser().getIdLong()), Updates.set("message", message.getIdLong()));
                     return consumer.apply(message);
                 })
                 .queue();

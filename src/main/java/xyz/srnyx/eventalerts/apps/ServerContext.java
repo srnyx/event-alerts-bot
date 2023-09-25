@@ -10,7 +10,7 @@ import com.freya02.botcommands.api.application.context.user.GlobalUserEvent;
 import org.jetbrains.annotations.NotNull;
 
 import xyz.srnyx.eventalerts.EventAlerts;
-import xyz.srnyx.eventalerts.mongo.objects.Server;
+import xyz.srnyx.eventalerts.mongo.Server;
 
 import xyz.srnyx.lazylibrary.LazyEmoji;
 
@@ -32,7 +32,7 @@ public class ServerContext extends ApplicationCommand {
         }
 
         // Get server
-        final Server server = eventAlerts.mongo.serverCollection.findOne("user", target);
+        final Server server = eventAlerts.getMongoCollection(Server.class).findOne("user", target);
         if (server == null) {
             event.reply(LazyEmoji.NO + " <@" + target + "> has not set a server!").setEphemeral(true).queue();
             return;

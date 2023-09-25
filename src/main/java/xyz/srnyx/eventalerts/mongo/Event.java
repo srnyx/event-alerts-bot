@@ -1,4 +1,4 @@
-package xyz.srnyx.eventalerts.mongo.objects;
+package xyz.srnyx.eventalerts.mongo;
 
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
@@ -14,7 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import xyz.srnyx.eventalerts.EventAlerts;
-import xyz.srnyx.eventalerts.mongo.EaMongo;
+import xyz.srnyx.eventalerts.utility.MongoUtility;
 
 import xyz.srnyx.lazylibrary.LazyEmoji;
 
@@ -50,7 +50,7 @@ public class Event {
 
     @Nullable
     public RestAction<Message> getMessage(@NotNull EventAlerts eventAlerts) {
-        return EaMongo.getMessage(eventAlerts, channel, thread);
+        return MongoUtility.getMessage(eventAlerts, channel, thread);
     }
 
     @Nullable
@@ -84,7 +84,7 @@ public class Event {
     }
 
     public void delete(@NotNull EventAlerts eventAlerts) {
-        eventAlerts.mongo.eventCollection.deleteOne("_id", id);
+        eventAlerts.getMongoCollection(getClass()).deleteOne("_id", id);
         final RestAction<Message> messageAction = getMessage(eventAlerts);
         if (messageAction != null) messageAction
                 .flatMap(msg -> msg.editMessageComponents(msg.getActionRows().stream()

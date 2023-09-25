@@ -5,17 +5,17 @@ token: "PUT_BOT_TOKEN_HERE"
 # Supports: MariaDB, SQLite, PostgreSQL, H2
 database: "PUT_CONNECTION_STRING_HERE"
 
+# The Mongo database connection information to store data for the bot
+mongo:
+  connection: "PUT_CONNECTION_STRING_HERE"
+  database: "PUT_DATABASE_NAME_HERE"
+
 # Owner IDs of the bot
 owners:
   primary: 242385234992037888 # srnyx
   other:
     - 365630764244664320 # Oiiink
     - 381890968971902976 # Rame
-
-# The Mongo database connection information to store data for the bot
-mongo:
-  connection: "PUT_CONNECTION_STRING_HERE"
-  database: "PUT_DATABASE_NAME_HERE"
 
 # The phrase users must have in their status to get the Advertising role
 advertising-status: ".gg/eventalerts"

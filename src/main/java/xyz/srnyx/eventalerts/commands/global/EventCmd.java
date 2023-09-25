@@ -35,7 +35,7 @@ import org.jetbrains.annotations.Nullable;
 
 import xyz.srnyx.eventalerts.EaConfig;
 import xyz.srnyx.eventalerts.EventAlerts;
-import xyz.srnyx.eventalerts.mongo.objects.Event;
+import xyz.srnyx.eventalerts.mongo.Event;
 
 import xyz.srnyx.javautilities.StringUtility;
 import xyz.srnyx.javautilities.manipulation.DurationParser;
@@ -130,7 +130,7 @@ public class EventCmd extends ApplicationCommand {
     public void buttonSubscribe(@NotNull ButtonEvent event) {
         final Long userId = getSubscribeUserId(event, true, "You are already following this event!");
         if (userId == null) return;
-        eventAlerts.mongo.eventCollection.collection.updateOne(Filters.eq("thread", event.getMessageIdLong()), Updates.addToSet("subscribers", userId));
+        eventAlerts.getMongoCollection(Event.class).collection.updateOne(Filters.eq("thread", event.getMessageIdLong()), Updates.addToSet("subscribers", userId));
         event.reply(LazyEmoji.YES + " **You are now following this event!** You will be notified ~5 minutes before it starts").setEphemeral(true)
                 .flatMap(msg -> {
                     final Message message = event.getMessage();
@@ -147,7 +147,7 @@ public class EventCmd extends ApplicationCommand {
     public void buttonUnsubscribe(@NotNull ButtonEvent event) {
         final Long userId = getSubscribeUserId(event, false, "You are not following this event!");
         if (userId == null) return;
-        eventAlerts.mongo.eventCollection.collection.updateOne(Filters.eq("thread", event.getMessageIdLong()), Updates.pull("subscribers", userId));
+        eventAlerts.getMongoCollection(Event.class).collection.updateOne(Filters.eq("thread", event.getMessageIdLong()), Updates.pull("subscribers", userId));
         event.reply(LazyEmoji.YES + " **You are no longer following this event!** You will no longer be notified").setEphemeral(true)
                 // subtract 1 from the subscriber count in button name
                 .flatMap(msg -> {
@@ -164,7 +164,7 @@ public class EventCmd extends ApplicationCommand {
     @Nullable
     private Long getSubscribeUserId(@NotNull ButtonEvent event, boolean containsCheck, @NotNull String errorMessage) {
         // Get event
-        final Event eventObj = eventAlerts.mongo.eventCollection.findOne("thread", event.getMessageIdLong());
+        final Event eventObj = eventAlerts.getMongoCollection(Event.class).findOne("thread", event.getMessageIdLong());
         if (eventObj == null) {
             event.reply(LazyEmoji.NO + " Event not found!").setEphemeral(true).queue();
             return null;
@@ -338,7 +338,7 @@ public class EventCmd extends ApplicationCommand {
                                 .flatMap(msg -> {
                                     final MessageEditAction editAction = msg.editMessage(getMessage(new MessageEditBuilder(), false));
                                     if (notification) {
-                                        eventAlerts.mongo.eventCollection.collection.insertOne(new Event(channel.getIdLong(), msg.getIdLong(), title.toUpperCase(), host, time));
+                                        eventAlerts.getMongoCollection(Event.class).collection.insertOne(new Event(channel.getIdLong(), msg.getIdLong(), title.toUpperCase(), host, time));
                                         editAction.setActionRow(
                                             Components.successButton(BUTTON_SUBSCRIBE).build(LazyEmoji.YES_CLEAR.getButtonContent("Follow (0)")),
                                             Components.dangerButton(BUTTON_UNSUBSCRIBE).build(LazyEmoji.NO_CLEAR_DARK.getButtonContent("Unfollow")));

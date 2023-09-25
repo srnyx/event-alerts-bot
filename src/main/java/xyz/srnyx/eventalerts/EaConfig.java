@@ -18,14 +18,12 @@ import java.util.List;
 
 public class EaConfig {
     @NotNull private final EventAlerts eventAlerts;
-    @NotNull public final MongoNode mongo;
     @Nullable public final String advertisingStatus;
     @NotNull public final GuildNode guild;
 
     public EaConfig(@NotNull EventAlerts eventAlerts) {
         this.eventAlerts = eventAlerts;
         final ConfigurationNode yaml = eventAlerts.settings.fileSettings.file.yaml;
-        this.mongo = new MongoNode(yaml.node("mongo"));
         final String advertisingStatusValue = yaml.node("advertising-status").getString();
         this.advertisingStatus = advertisingStatusValue == null ? null : advertisingStatusValue.toLowerCase();
         this.guild = new GuildNode(yaml.node("guild"));
@@ -35,16 +33,6 @@ public class EaConfig {
         final boolean isntOwner = !eventAlerts.isOwner(event.getUser().getIdLong());
         if (isntOwner) event.replyEmbeds(eventAlerts.embeds.noPermission()).setEphemeral(true).queue();
         return isntOwner;
-    }
-
-    public static class MongoNode {
-        @Nullable public final String connection;
-        @Nullable public final String database;
-
-        public MongoNode(@NotNull ConfigurationNode node) {
-            this.connection = node.node("connection").getString();
-            this.database = node.node("database").getString();
-        }
     }
 
     public class GuildNode {

@@ -1,4 +1,4 @@
-package xyz.srnyx.eventalerts.mongo.objects;
+package xyz.srnyx.eventalerts.mongo;
 
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.requests.RestAction;
@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 
 import xyz.srnyx.eventalerts.EventAlerts;
 import xyz.srnyx.eventalerts.ServerTag;
-import xyz.srnyx.eventalerts.mongo.EaMongo;
+import xyz.srnyx.eventalerts.utility.MongoUtility;
 
 import xyz.srnyx.lazylibrary.LazyEmbed;
 
@@ -35,7 +35,7 @@ public class Server {
 
     @Nullable
     public RestAction<Message> getMessage(@NotNull EventAlerts eventAlerts) {
-        return EaMongo.getMessage(eventAlerts, eventAlerts.config.guild.channels.servers, message);
+        return MongoUtility.getMessage(eventAlerts, eventAlerts.config.guild.channels.servers, message);
     }
 
     @NotNull
