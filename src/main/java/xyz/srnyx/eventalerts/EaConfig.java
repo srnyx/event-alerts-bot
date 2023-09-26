@@ -119,12 +119,14 @@ public class EaConfig {
             public final long servers;
             public final long partnerEvents;
             public final long communityEvents;
+            public final long boosterPass;
 
             public ChannelsNode(@NotNull ConfigurationNode node) {
                 this.strikes = node.node("strikes").getLong();
                 this.servers = node.node("servers").getLong();
                 this.partnerEvents = node.node("partner-events").getLong();
                 this.communityEvents = node.node("community-events").getLong();
+                this.boosterPass = node.node("booster-pass").getLong();
             }
 
             @Nullable
@@ -145,6 +147,11 @@ public class EaConfig {
             @Nullable
             public GuildMessageChannel getCommunityEvents() {
                 return getGuildMessageChannel(communityEvents);
+            }
+
+            @Nullable
+            public GuildMessageChannel getBoosterPass() {
+                return getGuildMessageChannel(boosterPass);
             }
 
             @Nullable

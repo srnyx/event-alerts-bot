@@ -16,6 +16,7 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -24,6 +25,8 @@ import xyz.srnyx.eventalerts.EventAlerts;
 import xyz.srnyx.eventalerts.mongo.Booster;
 
 import xyz.srnyx.lazylibrary.LazyEmoji;
+
+import java.util.Collections;
 
 
 @CommandMarker
@@ -106,6 +109,10 @@ public class BoosterPassCmd extends ApplicationCommand {
         data.guild.addRoleToMember(data.member, data.role)
                 .flatMap(v -> event.reply(LazyEmoji.YES + " You've given a pass to " + mention + "!").setEphemeral(true))
                 .queue();
+
+        // Send give message
+        final GuildMessageChannel channel = eventAlerts.config.guild.channels.getBoosterPass();
+        if (channel != null) channel.sendMessage("**:tada: <@" + userId + "> has given a booster pass to " + mention + "!**\nIf you're boosting the server, you can give a pass using </boosterpass give:1149481074284568637>").setAllowedMentions(Collections.emptySet()).queue();
     }
 
     @JDASlashCommand(
