@@ -3,6 +3,7 @@ package xyz.srnyx.eventalerts.commands.global;
 import com.freya02.botcommands.api.annotations.CommandMarker;
 import com.freya02.botcommands.api.annotations.Dependency;
 import com.freya02.botcommands.api.application.ApplicationCommand;
+import com.freya02.botcommands.api.application.CommandPath;
 import com.freya02.botcommands.api.application.CommandScope;
 import com.freya02.botcommands.api.application.annotations.AppOption;
 import com.freya02.botcommands.api.application.slash.GlobalSlashEvent;
@@ -19,10 +20,12 @@ import com.freya02.botcommands.api.utils.ButtonContent;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
 
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
@@ -40,7 +43,6 @@ import xyz.srnyx.eventalerts.mongo.Event;
 import xyz.srnyx.javautilities.StringUtility;
 import xyz.srnyx.javautilities.manipulation.DurationParser;
 
-import xyz.srnyx.lazylibrary.LazyEmbed;
 import xyz.srnyx.lazylibrary.LazyEmoji;
 
 import java.time.Duration;
@@ -65,6 +67,8 @@ public class EventCmd extends ApplicationCommand {
                              @AppOption(description = "The start time of the event") @NotNull String time,
                              @AppOption(description = "The server IP for the event") @NotNull String ip,
                              @AppOption(description = "The version of the server") @NotNull String version,
+                             @AppOption(description = "The platform that players can play on") @Nullable String platform,
+                             @AppOption(description = "The maximum amount of players that can join") @Nullable Integer maxPlayers,
                              @AppOption(description = "The prize of the event") @Nullable String prize) {
         // Check if user has No Hosting
         final EaConfig.GuildNode.RolesNode roles = eventAlerts.config.guild.roles;
@@ -75,8 +79,8 @@ public class EventCmd extends ApplicationCommand {
         }
 
         // Check if user has Partner or Community Events
-        final EventData data = new EventData(eventAlerts, title, ip, version, userId, prize);
-        if (!data.isPartner && !roles.hasRole(userId, roles.communityEvents)) {
+        final boolean isPartner = roles.hasRole(userId, roles.partner);
+        if (!isPartner && !roles.hasRole(userId, roles.communityEvents)) {
             event.replyEmbeds(eventAlerts.embeds.noPermission()).setEphemeral(true).queue();
             return;
         }
@@ -106,12 +110,21 @@ public class EventCmd extends ApplicationCommand {
                 event.reply(LazyEmoji.NO + " **Invalid time format!** Please use one of the formats below\n### Epoch/Unix timestamp\n- [Epoch Converter](<https://epochconverter.com>)\n- [HammerTime](<https://hammertime.cyou>)\n### Duration/relative\n- `s` = seconds\n- `m` = minutes\n- `h` = hours\n- `d` = days\n- `w` = weeks\n- `mo` = months\n- `y` = years\n***Example:** `2h30m10s`*").setEphemeral(true).queue();
                 return;
             }
-            data.time = now + duration.toMillis();
+            timeLong = now + duration.toMillis();
         }
 
         // Send message
-        data.roles.add(data.isPartner ? roles.eventPings.eventAlerts : roles.eventPings.community);
+        final EventData data = new EventData(eventAlerts, isPartner, title, timeLong, prize, ip, platform, version, maxPlayers, userId);
+        data.roles.add(isPartner ? roles.eventPings.eventAlerts : roles.eventPings.community);
         event.reply(data.getMessage(new MessageCreateBuilder(), true)).setEphemeral(true).queue();
+    }
+
+    @Override @NotNull
+    public List<Command.Choice> getOptionChoices(@Nullable Guild guild, @NotNull CommandPath path, int optionIndex) {
+        return optionIndex == 4 ? List.of(
+                new Command.Choice("Java", "Java"),
+                new Command.Choice("Bedrock", "Bedrock"),
+                new Command.Choice("Both", "Java/Bedrock")) : List.of();
     }
 
     @ModalHandler(name = MODAL_EVENT_DESCRIPTION)
@@ -119,11 +132,13 @@ public class EventCmd extends ApplicationCommand {
                                       @ModalData @NotNull List<Long> roles,
                                       @ModalData @NotNull String title,
                                       @ModalData long time,
-                                      @ModalData @NotNull String ip,
-                                      @ModalData @NotNull String version,
                                       @ModalData @NotNull String prize,
+                                      @ModalData @NotNull String ip,
+                                      @ModalData @NotNull String platform,
+                                      @ModalData @NotNull String version,
+                                      @ModalData int maxPlayers,
                                       @ModalInput(name = "description") @Nullable String description) {
-        event.editMessage(new EventData(eventAlerts, roles, title, time, ip, version, event.getUser().getIdLong(), prize.isEmpty() ? null : prize, description).getMessage(new MessageEditBuilder(), true)).queue();
+        event.editMessage(new EventData(eventAlerts, roles, title, time, prize.isEmpty() ? null : prize, ip, platform.isEmpty() ? null : platform, version, maxPlayers, event.getUser().getIdLong(), description).getMessage(new MessageEditBuilder(), true)).queue();
     }
 
     @JDAButtonListener(name = BUTTON_SUBSCRIBE)
@@ -184,28 +199,43 @@ public class EventCmd extends ApplicationCommand {
         private final boolean isPartner;
         @NotNull private final List<Long> roles;
         @NotNull private final String title;
-        @Nullable private Long time;
+        private final long time;
         @NotNull private final String ip;
+        @Nullable private final String platform;
         @NotNull private final String version;
+        @Nullable private final Integer maxPlayers;
         private final long host;
         @Nullable private final String prize;
         @Nullable private String description;
 
-        private EventData(@NotNull EventAlerts eventAlerts, @NotNull List<Long> roles, @NotNull String title, @Nullable Long time, @NotNull String ip, @NotNull String version, long host, @Nullable String prize, @Nullable String description) {
+        private EventData(@NotNull EventAlerts eventAlerts, @NotNull List<Long> roles, @NotNull String title, long time, @Nullable String prize, @NotNull String ip, @Nullable String platform, @NotNull String version, @Nullable Integer maxPlayers, long host, @Nullable String description) {
             this.eventAlerts = eventAlerts;
             this.isPartner = eventAlerts.config.guild.roles.hasRole(host, eventAlerts.config.guild.roles.partner);
             this.roles = roles;
             this.title = title;
             this.time = time;
             this.ip = ip;
+            this.platform = platform;
             this.version = version;
+            this.maxPlayers = maxPlayers;
             this.host = host;
             this.prize = prize;
             this.description = description;
         }
 
-        private EventData(@NotNull EventAlerts eventAlerts, @NotNull String title, @NotNull String ip, @NotNull String version, long host, @Nullable String prize) {
-            this(eventAlerts, new ArrayList<>(), title, null, ip, version, host, prize, null);
+        private EventData(@NotNull EventAlerts eventAlerts, boolean isPartner, @NotNull String title, long time, @Nullable String prize, @NotNull String ip, @Nullable String platform, @NotNull String version, @Nullable Integer maxPlayers, long host) {
+            this.eventAlerts = eventAlerts;
+            this.isPartner = isPartner;
+            this.roles = new ArrayList<>();
+            this.title = title;
+            this.time = time;
+            this.ip = ip;
+            this.platform = platform;
+            this.version = version;
+            this.maxPlayers = maxPlayers;
+            this.host = host;
+            this.prize = prize;
+            this.description = null;
         }
 
         @NotNull
@@ -217,13 +247,6 @@ public class EventCmd extends ApplicationCommand {
         }
 
         @NotNull
-        private String getTimeString() {
-            if (time == null) return "N/A";
-            final String string = "<t:" + (time / 1000L);
-            return string + "> (" + string + ":R>)";
-        }
-
-        @NotNull
         private <T, R extends AbstractMessageBuilder<T, R>> T getMessage(@NotNull AbstractMessageBuilder<T, R> builder, boolean includeActionRows) {
             if (includeActionRows) builder.setComponents(getActionRows());
             return builder.setContent(getContent(true)).build();
@@ -231,15 +254,30 @@ public class EventCmd extends ApplicationCommand {
 
         @NotNull
         private String getContent(boolean includeDescription) {
+            // Title
             final StringBuilder builder = new StringBuilder("__**" + title.toUpperCase() + "**__");
+            // Roles
             final String rolesString = getRolesString();
             if (!rolesString.isEmpty()) builder.append(" | ").append(rolesString);
+            // Description
             if (includeDescription && description != null) builder.append("\n").append(description);
-            builder.append("\n\n⏰ **Time:** ").append(getTimeString()).append("\n");
+            // Time
+            final String timeString = "<t:" + (time / 1000L);
+            builder.append("\n\n⏰ **Time:** ").append(timeString).append("> (").append(timeString).append(":R>)").append("\n");
+            // Prize
             if (prize != null) builder.append("🎁 **Prize:** ").append(prize).append("\n");
+            // IP
             builder.append("\n\uD83D\uDCCC **IP:** `").append(ip).append("`\n");
-            builder.append("\uD83D\uDD04 **Version:** ").append(version).append("\n");
-            builder.append("\n\uD83E\uDD73 **Host:** <@").append(host).append(">");
+            // Platform
+            builder.append("\uD83D\uDD04 **Version:** ");
+            if (platform != null) builder.append(platform).append(" ");
+            // Version
+            builder.append(version);
+            // Max players
+            if (maxPlayers != null) builder.append("\n\uD83D\uDC65 **Max players:** ").append(maxPlayers);
+            // Host
+            builder.append("\n\n\uD83E\uDD73 **Host:** <@").append(host).append(">");
+            // Footer
             if (isPartner) builder.append("\n*Use </server get:1142607814905315469> for their server*");
 
             // Check length
@@ -251,34 +289,13 @@ public class EventCmd extends ApplicationCommand {
         }
 
         @NotNull
-        private <T, R extends AbstractMessageBuilder<T, R>> T getEmbed(@NotNull AbstractMessageBuilder<T, R> builder) {
-            // Get rolesString
-            final String rolesString = getRolesString();
-            builder.setContent(rolesString);
-
-            // Create embed
-            final LazyEmbed embed = new LazyEmbed().setTitle(title);
-            if (prize != null) embed.addField("\uD83C\uDF81 Prize", prize, false);
-            embed
-                    .addField("\uD83D\uDCCC IP", "`" + ip + "`", false)
-                    .addField("\uD83D\uDD04 Version", version, false)
-                    .addField("⏰ Time", getTimeString(), false);
-            if (!rolesString.isEmpty()) embed.addField("\uD83D\uDD14 Pings", rolesString, false);
-            embed.addField("\uD83E\uDD73 Host", "<@" + host + ">" + (isPartner ? " *Use </server get:1142607814905315469> for their server*" : ""), false);
-            if (description != null) embed.setDescription(description);
-
-            // Return message
-            return builder.setEmbeds(embed.build(eventAlerts)).build();
-        }
-
-        @NotNull
         private List<ActionRow> getActionRows() {
             final EaConfig.GuildNode guild = eventAlerts.config.guild;
             final EaConfig.GuildNode.RolesNode.EventPingsNode eventPings = guild.roles.eventPings;
 
             // Get first ActionRow
             final List<Button> buttons = new ArrayList<>();
-            buttons.add(Components.secondaryButton(buttonEvent -> buttonEvent.replyModal(Modals.create("Event Description", MODAL_EVENT_DESCRIPTION, roles, title, time, ip, version, prize == null ? "" : prize)
+            buttons.add(Components.secondaryButton(buttonEvent -> buttonEvent.replyModal(Modals.create("Event Description", MODAL_EVENT_DESCRIPTION, roles, title, time, prize == null ? "" : prize, ip, platform == null ? "" : platform, version, maxPlayers)
                     .addActionRow(Modals.createTextInput("description", "Event description", TextInputStyle.PARAGRAPH)
                             .setPlaceholder("Enter a description for your event")
                             .setValue(description)
@@ -332,12 +349,11 @@ public class EventCmd extends ApplicationCommand {
                             reactions.add(Emoji.fromUnicode("👥"));
                         }
                         // Send/edit messages
-                        final boolean notification = time != null && time - System.currentTimeMillis() > 300000;
                         final String rolesString = getRolesString();
                         channel.sendMessage(rolesString.isEmpty() ? "**Loading...** please wait" : rolesString)
                                 .flatMap(msg -> {
                                     final MessageEditAction editAction = msg.editMessage(getMessage(new MessageEditBuilder(), false));
-                                    if (notification) {
+                                    if (time - System.currentTimeMillis() > 300000) {
                                         eventAlerts.getMongoCollection(Event.class).collection.insertOne(new Event(channel.getIdLong(), msg.getIdLong(), title.toUpperCase(), host, time));
                                         editAction.setActionRow(
                                             Components.successButton(BUTTON_SUBSCRIBE).build(LazyEmoji.YES_CLEAR.getButtonContent("Follow (0)")),
