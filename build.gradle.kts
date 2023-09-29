@@ -10,7 +10,7 @@ plugins {
     id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
-setupJava("xyz.srnyx", "1.0.0", "A Discord bot for Event Alerts")
+setupJava("xyz.srnyx", "2.0.0", "A Discord bot for Event Alerts")
 repository(Repository.MAVEN_CENTRAL, Repository.JITPACK)
 addCompilerArgs("-parameters")
 application.mainClass.set("xyz.srnyx.eventalerts.EventAlerts")
