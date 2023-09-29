@@ -35,7 +35,7 @@ public class EventAlerts extends LazyLibrary {
         jda.addEventListener(new UserListener(this));
 
         // Presence (status)
-        jda.getPresence().setActivity(Activity.playing("oink oink"));
+        jda.getPresence().setActivity(Activity.customStatus("oink oink"));
 
         // Check ended events & expired strikes
         getEndedEvents().forEach(event -> event.delete(this));

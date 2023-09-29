@@ -16,8 +16,8 @@ addCompilerArgs("-parameters")
 application.mainClass.set("xyz.srnyx.eventalerts.EventAlerts")
 
 dependencies {
-    implementation("net.dv8tion", "JDA", "5.0.0-beta.13")
-    implementation("xyz.srnyx", "lazy-library", "2.0.0")
+    implementation("net.dv8tion", "JDA", "5.0.0-beta.14")
+    implementation("xyz.srnyx", "lazy-library", "2.1.0")
 }
 
 // Fix some tasks
