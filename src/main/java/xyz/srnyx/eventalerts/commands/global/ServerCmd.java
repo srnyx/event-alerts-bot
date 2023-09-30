@@ -26,10 +26,8 @@ import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.EntitySelectMenu;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
-import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.requests.RestAction;
 
@@ -54,21 +52,23 @@ public class ServerCmd extends ApplicationCommand {
     @NotNull private static final String MODAL_SET_DESCRIPTION = "ServerCmd.modal.set.description";
     @NotNull private static final String MENU_EDIT = "ServerCmd.menu.edit";
     @NotNull private static final String BUTTON_EDIT_DONE = "ServerCmd.button.edit.done";
-    @NotNull private static final String BUTTON_EDIT_CANCEL = "ServerCmd.button.edit.cancel";
     @NotNull private static final String MODAL_EDIT_NAME = "ServerCmd.modal.edit.name";
     @NotNull private static final String MODAL_EDIT_DESCRIPTION = "ServerCmd.modal.edit.description";
     @NotNull private static final String MODAL_EDIT_INVITE = "ServerCmd.modal.edit.invite";
     @NotNull private static final String MODAL_EDIT_COLOR = "ServerCmd.modal.edit.color";
     @NotNull private static final String MODAL_EDIT_THUMBNAIL = "ServerCmd.modal.edit.thumbnail";
 
-    @NotNull private static final List<SelectOption> EDIT_OPTIONS = List.of(
-            SelectOption.of("Name", "name").withEmoji(Emoji.fromUnicode("\uD83D\uDCDB")),
-            SelectOption.of("Description", "description").withEmoji(Emoji.fromUnicode("\uD83D\uDCDD")),
-            SelectOption.of("Invite", "invite").withEmoji(Emoji.fromUnicode("\uD83D\uDD17")),
-            SelectOption.of("Tags", "tags").withEmoji(Emoji.fromUnicode("\uD83C\uDFF7")),
-            SelectOption.of("Representatives", "representatives").withEmoji(Emoji.fromUnicode("\uD83D\uDC65")),
-            SelectOption.of("Color", "color").withEmoji(Emoji.fromUnicode("\uD83C\uDFA8")),
-            SelectOption.of("Thumbnail", "thumbnail").withEmoji(Emoji.fromUnicode("\uD83D\uDDBC")));
+    @NotNull private static final ActionRow EDIT_MENU_ROW = ActionRow.of(Components.stringSelectionMenu(MENU_EDIT)
+            .addOptions(List.of(
+                    SelectOption.of("Name", "name").withEmoji(Emoji.fromUnicode("\uD83D\uDCDB")),
+                    SelectOption.of("Description", "description").withEmoji(Emoji.fromUnicode("\uD83D\uDCDD")),
+                    SelectOption.of("Invite", "invite").withEmoji(Emoji.fromUnicode("\uD83D\uDD17")),
+                    SelectOption.of("Tags", "tags").withEmoji(Emoji.fromUnicode("\uD83C\uDFF7")),
+                    SelectOption.of("Representatives", "representatives").withEmoji(Emoji.fromUnicode("\uD83D\uDC65")),
+                    SelectOption.of("Color", "color").withEmoji(Emoji.fromUnicode("\uD83C\uDFA8")),
+                    SelectOption.of("Thumbnail", "thumbnail").withEmoji(Emoji.fromUnicode("\uD83D\uDDBC"))))
+            .setMaxValues(1).build());
+    @NotNull private static final ActionRow EDIT_DONE_ROW = ActionRow.of(Components.successButton(BUTTON_EDIT_DONE).build(LazyEmoji.YES_CLEAR.getButtonContent("Done")));
 
     @Dependency private EventAlerts eventAlerts;
 
@@ -253,8 +253,7 @@ public class ServerCmd extends ApplicationCommand {
 
         // Send embed
         event.replyEmbeds(server.getEmbed().build(eventAlerts))
-                .addActionRow(getEditMenu())
-                .addActionRow(getEditDoneButton())
+                .addComponents(EDIT_MENU_ROW, EDIT_DONE_ROW)
                 .setEphemeral(true)
                 .queue();
     }
@@ -346,11 +345,11 @@ public class ServerCmd extends ApplicationCommand {
                                 // Edit embed
                                 buttonEvent.editMessage(LazyEmoji.YES + " Your server tags have been updated!")
                                         .setEmbeds(server.getEmbed().build(eventAlerts))
-                                        .setComponents(ActionRow.of(getEditMenu()), ActionRow.of(getEditDoneButton()))
+                                        .setComponents(EDIT_MENU_ROW, EDIT_DONE_ROW)
                                         .queue();
                             }).build(LazyEmoji.YES_CLEAR.getButtonContent("Done")),
                             Components.dangerButton(buttonEvent -> buttonEvent.editMessage(LazyEmoji.YES + " Cancelled tags editing!")
-                                    .setComponents(ActionRow.of(getEditMenu()), ActionRow.of(getEditDoneButton()))
+                                    .setComponents(EDIT_MENU_ROW, EDIT_DONE_ROW)
                                     .queue()).build(LazyEmoji.NO_CLEAR_DARK.getButtonContent("Cancel")))).queue();
             return;
         }
@@ -381,12 +380,12 @@ public class ServerCmd extends ApplicationCommand {
                                 // Edit embed
                                 buttonEvent.editMessage(LazyEmoji.YES + " Your server representatives have been updated!")
                                         .setEmbeds(server.getEmbed().build(eventAlerts))
-                                        .setComponents(ActionRow.of(getEditMenu()), ActionRow.of(getEditDoneButton()))
+                                        .setComponents(EDIT_MENU_ROW, EDIT_DONE_ROW)
                                         .queue();
                             }).build(LazyEmoji.YES_CLEAR.getButtonContent("Done")),
                             Components.dangerButton(buttonEvent -> buttonEvent.editMessage(LazyEmoji.YES + " Cancelled representative editing!")
                                     .setEmbeds()
-                                    .setComponents(ActionRow.of(getEditMenu()), ActionRow.of(getEditDoneButton()))
+                                    .setComponents(EDIT_MENU_ROW, EDIT_DONE_ROW)
                                     .queue()).build(LazyEmoji.NO_CLEAR_DARK.getButtonContent("Cancel")))).queue();
             return;
         }
@@ -421,11 +420,6 @@ public class ServerCmd extends ApplicationCommand {
             return;
         }
         sendEditMessage(event, updatedServer, message -> event.editMessage(LazyEmoji.YES + " Your server has been updated, see it here: " + message.getJumpUrl()).setComponents());
-    }
-
-    @JDAButtonListener(name = BUTTON_EDIT_CANCEL)
-    public void buttonEditCancel(@NotNull ButtonEvent event) {
-
     }
 
     @ModalHandler(name = MODAL_EDIT_NAME)
@@ -543,19 +537,6 @@ public class ServerCmd extends ApplicationCommand {
         hook.editOriginal(LazyEmoji.YES + " Successfully changed your server's thumbnail!")
                 .setEmbeds(server.getEmbed().build(eventAlerts))
                 .queue();
-    }
-
-    @NotNull
-    private StringSelectMenu getEditMenu() {
-        return Components.stringSelectionMenu(MENU_EDIT)
-                .addOptions(EDIT_OPTIONS)
-                .setMaxValues(1)
-                .build();
-    }
-
-    @NotNull
-    private Button getEditDoneButton() {
-        return Components.successButton(BUTTON_EDIT_DONE).build(LazyEmoji.YES_CLEAR.getButtonContent("Done"));
     }
 
     private void sendEditMessage(@NotNull ButtonEvent event, @NotNull Server server, @NotNull Function<Message, RestAction<InteractionHook>> consumer) {
