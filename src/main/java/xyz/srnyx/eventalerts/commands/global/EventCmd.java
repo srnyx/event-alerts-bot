@@ -114,7 +114,7 @@ public class EventCmd extends ApplicationCommand {
         }
 
         // Send message
-        final EventData data = new EventData(eventAlerts, isPartner, title, timeLong, prize, ip, platform, version, maxPlayers, userId);
+        final EventData data = new EventData(eventAlerts, isPartner, title, timeLong, prize, ip, platform, version, maxPlayers == null ? 0 : maxPlayers, userId);
         data.roles.add(isPartner ? roles.eventPings.eventAlerts : roles.eventPings.community);
         event.reply(data.getMessage(new MessageCreateBuilder(), true)).setEphemeral(true).queue();
     }
@@ -200,41 +200,41 @@ public class EventCmd extends ApplicationCommand {
         @NotNull private final List<Long> roles;
         @NotNull private final String title;
         private final long time;
+        @Nullable private final String prize;
         @NotNull private final String ip;
         @Nullable private final String platform;
         @NotNull private final String version;
-        @Nullable private final Integer maxPlayers;
+        private final int maxPlayers;
         private final long host;
-        @Nullable private final String prize;
         @Nullable private String description;
 
-        private EventData(@NotNull EventAlerts eventAlerts, @NotNull List<Long> roles, @NotNull String title, long time, @Nullable String prize, @NotNull String ip, @Nullable String platform, @NotNull String version, @Nullable Integer maxPlayers, long host, @Nullable String description) {
+        private EventData(@NotNull EventAlerts eventAlerts, @NotNull List<Long> roles, @NotNull String title, long time, @Nullable String prize, @NotNull String ip, @Nullable String platform, @NotNull String version, int maxPlayers, long host, @Nullable String description) {
             this.eventAlerts = eventAlerts;
             this.isPartner = eventAlerts.config.guild.roles.hasRole(host, eventAlerts.config.guild.roles.partner);
             this.roles = roles;
             this.title = title;
             this.time = time;
+            this.prize = prize;
             this.ip = ip;
             this.platform = platform;
             this.version = version;
             this.maxPlayers = maxPlayers;
             this.host = host;
-            this.prize = prize;
             this.description = description;
         }
 
-        private EventData(@NotNull EventAlerts eventAlerts, boolean isPartner, @NotNull String title, long time, @Nullable String prize, @NotNull String ip, @Nullable String platform, @NotNull String version, @Nullable Integer maxPlayers, long host) {
+        private EventData(@NotNull EventAlerts eventAlerts, boolean isPartner, @NotNull String title, long time, @Nullable String prize, @NotNull String ip, @Nullable String platform, @NotNull String version, int maxPlayers, long host) {
             this.eventAlerts = eventAlerts;
             this.isPartner = isPartner;
             this.roles = new ArrayList<>();
             this.title = title;
             this.time = time;
+            this.prize = prize;
             this.ip = ip;
             this.platform = platform;
             this.version = version;
             this.maxPlayers = maxPlayers;
             this.host = host;
-            this.prize = prize;
             this.description = null;
         }
 
@@ -274,7 +274,7 @@ public class EventCmd extends ApplicationCommand {
             // Version
             builder.append(version);
             // Max players
-            if (maxPlayers != null) builder.append("\n\uD83D\uDC65 **Max players:** ").append(maxPlayers);
+            if (maxPlayers != 0) builder.append("\n\uD83D\uDC65 **Max players:** ").append(maxPlayers);
             // Host
             builder.append("\n\n\uD83E\uDD73 **Host:** <@").append(host).append(">");
             // Footer
