@@ -5,10 +5,8 @@ token: "PUT_BOT_TOKEN_HERE"
 # Supports: MariaDB, SQLite, PostgreSQL, H2
 database: "PUT_CONNECTION_STRING_HERE"
 
-# The Mongo database connection information to store data for the bot
-mongo:
-  connection: "PUT_CONNECTION_STRING_HERE"
-  database: "PUT_DATABASE_NAME_HERE"
+# The Mongo database connection string to store data for the bot
+mongo: "PUT_CONNECTION_STRING_HERE"
 
 # Owner IDs of the bot
 owners:
