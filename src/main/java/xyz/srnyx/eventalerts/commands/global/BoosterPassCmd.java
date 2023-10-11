@@ -21,6 +21,7 @@ import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import xyz.srnyx.eventalerts.EaConfig;
 import xyz.srnyx.eventalerts.EventAlerts;
 import xyz.srnyx.eventalerts.mongo.Booster;
 
@@ -38,14 +39,22 @@ public class BoosterPassCmd extends ApplicationCommand {
             name = "boosterpass",
             subcommand = "list",
             description = "List your current booster passes")
-    public void commandList(@NotNull GlobalSlashEvent event) {
+    public void commandList(@NotNull GlobalSlashEvent event,
+                            @AppOption(description = "The user to list the passes of") @Nullable User user) {
+        final EaConfig.GuildNode guildNode = eventAlerts.config.guild;
+        if (user != null) {
+            if (guildNode.roles.checkDontHaveRole(event, guildNode.roles.mod)) return;
+        } else {
+            user = event.getUser();
+        }
+
         // Get member
-        final Guild guild = eventAlerts.config.guild.getGuild();
+        final Guild guild = guildNode.getGuild();
         if (guild == null) {
             event.reply(LazyEmoji.NO + " An unexpected error occurred!").setEphemeral(true).queue();
             return;
         }
-        final Member member = guild.retrieveMember(event.getUser()).complete();
+        final Member member = guild.retrieveMember(user).complete();
         if (member == null) {
             event.reply(LazyEmoji.NO + " An unexpected error occurred!").setEphemeral(true).queue();
             return;
@@ -55,14 +64,14 @@ public class BoosterPassCmd extends ApplicationCommand {
         final Booster booster = eventAlerts.getMongoCollection(Booster.class).findOne("user", member.getIdLong());
         if (!member.isBoosting()) {
             if (booster != null) booster.removePasses(eventAlerts);
-            event.reply(LazyEmoji.NO + " You aren't boosting the server!").setEphemeral(true).queue();
+            event.reply(LazyEmoji.NO + " " + user.getAsMention() + " isn't boosting the server!").setEphemeral(true).queue();
             return;
         }
 
         // Check if user has any passes
         if (booster == null || booster.passes.isEmpty()) {
             if (booster != null) eventAlerts.getMongoCollection(Booster.class).deleteOne("_id", booster.id);
-            event.reply(LazyEmoji.NO + " You don't have any booster passes!").setEphemeral(true).queue();
+            event.reply(LazyEmoji.NO + " " + user.getAsMention() + " doesn't have any booster passes!").setEphemeral(true).queue();
             return;
         }
 
@@ -70,7 +79,7 @@ public class BoosterPassCmd extends ApplicationCommand {
         final StringBuilder passes = new StringBuilder();
         booster.passes.forEach(pass -> passes.append("<@").append(pass).append("> & "));
         passes.delete(passes.length() - 3, passes.length());
-        event.reply(LazyEmoji.YES + " You've given **" + booster.passes.size() + "/2** of your passes to: " + passes).setEphemeral(true).queue();
+        event.reply(LazyEmoji.YES +  " " + user.getAsMention() + " has given **" + booster.passes.size() + "/2** of their passes to: " + passes).setEphemeral(true).queue();
     }
 
     @JDASlashCommand(
