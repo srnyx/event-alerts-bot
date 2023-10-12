@@ -60,23 +60,25 @@ public class ServerCmd extends ApplicationCommand {
     @NotNull private static final String MODAL_EDIT_COLOR = "ServerCmd.modal.edit.color";
     @NotNull private static final String MODAL_EDIT_THUMBNAIL = "ServerCmd.modal.edit.thumbnail";
 
-    @NotNull private static final StringSelectMenu.Builder EDIT_MENU_BUILDER = Components.stringSelectionMenu(MENU_EDIT)
-            .addOptions(List.of(
-                    SelectOption.of("Name", "name").withEmoji(Emoji.fromUnicode("\uD83D\uDCDB")),
-                    SelectOption.of("Description", "description").withEmoji(Emoji.fromUnicode("\uD83D\uDCDD")),
-                    SelectOption.of("Invite", "invite").withEmoji(Emoji.fromUnicode("\uD83D\uDD17")),
-                    SelectOption.of("Tags", "tags").withEmoji(Emoji.fromUnicode("\uD83C\uDFF7")),
-                    SelectOption.of("Representatives", "representatives").withEmoji(Emoji.fromUnicode("\uD83D\uDC65")),
-                    SelectOption.of("Color", "color").withEmoji(Emoji.fromUnicode("\uD83C\uDFA8")),
-                    SelectOption.of("Thumbnail", "thumbnail").withEmoji(Emoji.fromUnicode("\uD83D\uDDBC"))))
-            .setMaxValues(1)
-            .setPlaceholder("Select a field to edit");
+    @NotNull private static final List<SelectOption> EDIT_MENU_OPTIONS = List.of(
+            SelectOption.of("Name", "name").withEmoji(Emoji.fromUnicode("\uD83D\uDCDB")),
+            SelectOption.of("Description", "description").withEmoji(Emoji.fromUnicode("\uD83D\uDCDD")),
+            SelectOption.of("Invite", "invite").withEmoji(Emoji.fromUnicode("\uD83D\uDD17")),
+            SelectOption.of("Tags", "tags").withEmoji(Emoji.fromUnicode("\uD83C\uDFF7")),
+            SelectOption.of("Representatives", "representatives").withEmoji(Emoji.fromUnicode("\uD83D\uDC65")),
+            SelectOption.of("Color", "color").withEmoji(Emoji.fromUnicode("\uD83C\uDFA8")),
+            SelectOption.of("Thumbnail", "thumbnail").withEmoji(Emoji.fromUnicode("\uD83D\uDDBC")));
 
     @Dependency private EventAlerts eventAlerts;
 
     @NotNull @Contract(" -> new")
     private List<ActionRow> getActionRows() {
-        return List.of(ActionRow.of(EDIT_MENU_BUILDER.build()), ActionRow.of(Components.successButton(BUTTON_EDIT_DONE).build(LazyEmoji.YES_CLEAR.getButtonContent("Done"))));
+        return List.of(
+                ActionRow.of(Components.stringSelectionMenu(MENU_EDIT)
+                        .addOptions(EDIT_MENU_OPTIONS)
+                        .setMaxValues(1)
+                        .setPlaceholder("Select a field to edit").build()),
+                ActionRow.of(Components.successButton(BUTTON_EDIT_DONE).build(LazyEmoji.YES_CLEAR.getButtonContent("Done"))));
     }
 
     private void sendEditMessage(@NotNull ButtonEvent event, @NotNull Server server, @NotNull Function<Message, RestAction<InteractionHook>> consumer) {
